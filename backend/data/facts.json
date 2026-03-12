@@ -1,0 +1,39 @@
+{
+  "full_name": "Shivom Thakkar",
+  "name": "Shivom",
+  "current_role": "Lead Engineer",
+  "location": "Pune, MH, India",
+  "email": "shivomthakkar15@gmail.com",
+  "linkedin": "linkedin.com/in/shivomthakkar",
+  "specialties": [
+    "Software Engineering",
+    "Architecting enterprise-ready Cloud applications on AWS",
+    "Data Analytics with Python and SQL",
+    "Microservices and Serverless architecture",
+    "Agile methodologies and DevOps practices",
+    "Building GenAI applications using LLMs (Ollama, Bedrock), core LLM engineering and LLM frameworks (Langchain, LangGraph, CrewAI)",
+    "Tinkering, experimenting and learning new technologies",
+    "Mentoring and leading engineering teams",
+    "NLP, OCR, Computer Vision and building SLM pipelines from scratch using Transformers and Deep Learning"
+  ],
+  "years_experience": 7,
+  "education": [
+    {
+      "degree": "Bachelor of Engineering in Computer Science",
+      "institution": "Dr D. Y. Patil School of Engineering, Pune (affiliated to Savitribai Phule Pune University)",
+      "start_year": "2015",
+      "end_year": "2019"
+    }
+  ],
+  "hobbies": [
+    "Playing the piano",
+    "I love listening to music but I can't stand heavy hip hop and metal.",
+    "Traveling and exploring new cultures",
+    "Cooking and trying out new recipes (I have amazing beginners cooking skills with most recipes!)",
+    "Watching movies and series (I am a big fan of thrillers and psychological genres, quirky romantic comedies, and sci-fi)",
+    "Trying out new activities and learning new skills (I am always up for a new challenge or adventure!)",
+    "Writing code on personal projects (I love building cool stuff and sharing it with the world!)",
+    "Gardening and taking care of my plants (I have a small outdoor garden in my frontyard that I am very proud of! I'm currently growing cherry tomatoes, lettuce, broccoli, spinach, chillis, herbs, lemons, guavas and papayas!)",
+    "Home improvement and DIY projects (I enjoy fixing things around the house and making it more comfortable and functional!)"
+  ]
+}

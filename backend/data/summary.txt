@@ -1,0 +1,218 @@
+## Introduction
+
+I am a backend and systems-focused software engineer whose work has centered around building scalable distributed systems, high-throughput backend services, and intelligent automation platforms. Over the course of my career, I have worked across domains including financial technology, healthcare systems, and enterprise software, where the core challenge has consistently been designing reliable systems that operate under real-world scale and complexity.
+
+My professional growth has been shaped by a combination of backend engineering, cloud architecture, and applied machine learning. I have built systems that process millions of events daily, optimized infrastructure to significantly reduce operational costs, and implemented intelligent pipelines that automate previously manual workflows.
+
+Throughout my career, my focus has remained on building systems that are not only technically robust but also deliver measurable impact.
+
+---
+
+# Early Technical Foundations
+
+My journey into software engineering began with a fascination for problem solving and computational thinking. During my academic years I explored programming, algorithms, and system design while actively participating in competitive technical environments.
+
+I participated in several programming competitions and hackathons that strengthened my ability to solve complex problems under time constraints and collaborate with peers in building working solutions quickly.
+
+Some of these early experiences included:
+
+- Securing **3rd place in CodeSpree at MindSpark**, a competitive programming event.
+- Securing **3rd place in the TomTom Smart India Hackathon**.
+- Participating in technical competitions that emphasized algorithmic problem solving and rapid system development.
+
+These experiences helped shape my early engineering mindset: break large problems into smaller components, build iteratively, and always focus on the core constraints of the system.
+
+---
+
+# Professional Engineering Career
+
+My professional career has primarily focused on backend engineering and distributed systems. Over time I have developed expertise in designing systems that operate reliably at scale while integrating multiple technologies and services.
+
+My core areas of engineering work include:
+
+- Backend platform development
+- Distributed microservices architectures
+- Event-driven systems
+- Cloud-native infrastructure
+- AI and machine learning pipelines
+- Automation systems
+- Performance optimization
+
+The majority of my systems have been built using technologies such as:
+
+- **Java**
+- **Spring Boot**
+- **Python**
+- **AWS cloud infrastructure**
+- **Microservices architectures**
+- **Event-driven messaging systems**
+
+These technologies have enabled me to build scalable, maintainable backend platforms capable of supporting large operational workloads.
+
+---
+
+# Building Scalable Distributed Systems
+
+One of the central themes throughout my career has been designing and implementing distributed backend systems capable of handling high-throughput workloads.
+
+These systems often rely on microservices architectures, where independent services communicate through APIs and asynchronous messaging. This architectural approach allows systems to scale horizontally while maintaining clear separation of responsibilities.
+
+In production environments, the systems I have worked on have processed **millions of events per day**, requiring careful attention to reliability, monitoring, and fault tolerance.
+
+My work in distributed systems has involved:
+
+- Designing **event-driven architectures**
+- Implementing **high-throughput APIs**
+- Ensuring **fault tolerance and resiliency**
+- Monitoring production systems
+- Improving system observability
+- Managing service scalability
+
+Working in such environments taught me the importance of thoughtful architecture decisions, strong monitoring practices, and designing systems that gracefully handle failures.
+
+---
+
+# Cloud and Infrastructure Engineering
+
+Much of the infrastructure I have built and operated runs on **AWS**, where I have designed cloud-native architectures optimized for scalability and operational efficiency.
+
+My cloud engineering experience includes:
+
+- Designing cloud-native microservices
+- Deploying distributed applications
+- Building event-driven pipelines
+- Optimizing infrastructure costs
+- Managing production workloads
+
+Through architectural improvements and cloud optimization, I was able to reduce infrastructure costs by **approximately 70%** in one of the systems I worked on. This involved analyzing resource utilization, restructuring service interactions, and improving deployment configurations.
+
+Cloud infrastructure has been a central component of enabling scalable and maintainable backend systems throughout my career.
+
+---
+
+# Delivering Measurable System Improvements
+
+A key principle in my work has been focusing on measurable outcomes rather than purely technical implementations.
+
+Some of the major system improvements I have delivered include:
+
+### Infrastructure Optimization
+
+Through architectural improvements and infrastructure optimization, I helped reduce system infrastructure costs by **around 70%**, demonstrating how thoughtful engineering decisions can significantly improve operational efficiency.
+
+### Operational Efficiency
+
+In one healthcare-related system, I helped improve **claim processing times from approximately 15 minutes to 5 minutes**, which dramatically improved operational workflows and reduced delays in downstream processes.
+
+### Automation Impact
+
+By building automation systems that replaced manual processing workflows, I helped increase operational productivity by **around 87%**. These systems reduced human intervention in repetitive processes and allowed teams to focus on higher-value tasks.
+
+### Fraud Detection
+
+I developed machine learning models for fraud detection in financial systems that achieved **approximately 83% detection accuracy**, helping identify suspicious transactions more effectively.
+
+### High Volume Event Processing
+
+Many of the systems I built were designed to process **millions of events per day**, requiring efficient system design and careful performance optimization.
+
+---
+
+# Artificial Intelligence and Machine Learning Work
+
+In addition to backend systems engineering, I have worked extensively with applied AI and machine learning to automate complex workflows.
+
+These projects typically involved integrating machine learning models into production systems where they could operate reliably at scale.
+
+Some of the key AI-driven systems I worked on include:
+
+### Fraud Detection Systems
+
+I built fraud detection models that analyze financial transaction patterns to identify suspicious activity. These systems combine machine learning models with backend services that process transaction data and flag anomalies.
+
+### OCR-Based Document Processing
+
+I developed systems that use **Optical Character Recognition (OCR)** to automate document processing workflows. These pipelines extract structured information from scanned documents, reducing the need for manual data entry.
+
+### NLP Systems for Healthcare Data
+
+I implemented **BERT-based natural language processing models** designed to extract medical entities from healthcare-related documents. These systems help transform unstructured medical text into structured information that can be processed by other systems.
+
+### Image Classification Pipelines
+
+I also worked on **image classification systems** used in healthcare workflows. These models analyze image data and classify content to assist downstream processing systems.
+
+Building these AI pipelines required integrating machine learning models with backend services, data pipelines, and cloud infrastructure.
+
+---
+
+# Leadership and Engineering Collaboration
+
+As I progressed in my career, I began taking on increasing responsibility in guiding teams and projects.
+
+I have led **small engineering teams of approximately three to five engineers**, coordinating development efforts and ensuring projects were delivered successfully.
+
+My leadership contributions have included:
+
+- Mentoring junior engineers
+- Conducting Agile workshops
+- Guiding architectural discussions
+- Coordinating cross-functional development
+- Supporting engineering best practices
+
+These experiences helped me develop both technical leadership and collaborative communication skills.
+
+---
+
+# Communication and Public Speaking
+
+Beyond technical work, I have actively worked on improving my communication and leadership abilities.
+
+I have participated in **Toastmasters**, where I practiced public speaking and structured communication. This experience helped me become more effective at explaining complex technical ideas and collaborating with cross-functional teams.
+
+Strong communication has proven essential when discussing architecture decisions, mentoring engineers, and aligning engineering work with business goals.
+
+---
+
+# Recognition and Achievements
+
+Throughout my career, my work has been recognized through several achievements and acknowledgements.
+
+Some of these include:
+
+- Being named **Champion Performer at Hurone twice**
+- Securing **3rd place in CodeSpree at MindSpark**
+- Being selected among the **Top 10 teams in India Hackathon**
+- Completing the **Goldman Sachs Engineering Virtual Program**
+
+These milestones represent important moments in my professional development and reflect both technical contributions and dedication to continuous improvement.
+
+---
+
+# Engineering Philosophy
+
+My philosophy as an engineer is grounded in building systems that are:
+
+- Scalable
+- Maintainable
+- Reliable
+- Impactful
+
+I believe that effective engineering involves understanding both technical constraints and real-world operational needs.
+
+When designing systems, I focus on building architectures that can evolve over time, support increasing scale, and remain understandable for the engineers who maintain them.
+
+---
+
+# Looking Ahead
+
+As I continue to grow as an engineer, I remain deeply interested in the intersection of:
+
+- Distributed systems
+- Cloud-native infrastructure
+- Artificial intelligence
+- intelligent automation
+
+The convergence of backend engineering and machine learning presents opportunities to build systems that not only scale technically but also become increasingly intelligent.
+
+My long-term goal is to continue building impactful systems, contribute to high-performing engineering teams, and mentor other engineers while pushing the boundaries of scalable system design.
