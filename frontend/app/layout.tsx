@@ -4,8 +4,9 @@
 import { Amplify } from 'aws-amplify';
 import { amplifyConfig } from '../amplifyConfig';
 import { signInWithRedirect } from '@aws-amplify/auth';
-import { getCurrentUser } from '@aws-amplify/auth';
 import { fetchUserAttributes } from 'aws-amplify/auth';
+import LockOutlineIcon from '@mui/icons-material/LockOutline';
+import { usePathname, useRouter } from 'next/navigation';
 
 import "./globals.css";
 import React from "react";
@@ -13,6 +14,19 @@ import Head from "next/head";
 
 // Initialize Amplify once
 Amplify.configure({ Auth: amplifyConfig.Auth });
+
+type UserMode = 'null' | 'user' | 'admin_user';
+const MODE_HIERARCHY: UserMode[] = ['null', 'user', 'admin_user'];
+
+function getUserMode(user: any | null): UserMode {
+  if (!user) return 'null';
+  if (user['custom:is_admin'] === 'true') return 'admin_user';
+  return 'user';
+}
+
+function canAccess(required: UserMode, current: UserMode): boolean {
+  return MODE_HIERARCHY.indexOf(current) >= MODE_HIERARCHY.indexOf(required);
+}
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -34,7 +48,6 @@ export default function RootLayout({
   const [user, setUser] = React.useState<any | null>(null);
   const [loadingUser, setLoadingUser] = React.useState(true);
 
-
   React.useEffect(() => {
     async function fetchUser() {
       try {
@@ -50,14 +63,27 @@ export default function RootLayout({
   }, []);
 
   // Navigation tabs config
-  const tabs: Array<{ name: string; url: string; protected?: boolean; options?: Array<{ name: string; url: string; description: string; icon: React.ReactNode }> }> = [
+  const tabs: Array<{ name: string; url: string; visibility?: UserMode; options?: Array<{ name: string; url: string; description: string; icon: React.ReactNode }> }> = [
     { name: "Home", url: "/" },
     { name: "Blogs", url: "/blogs" },
-    { name: "Certifications", url: "/certifications" },
+    // { name: "Certifications", url: "/certifications" },
     { name: "Contact", url: "/contact" },
-    { name: "Talk", url: "/talk", protected: true },
-    // { name: "Trading", url: "/trading", protected: true },
+    { name: "Chat", url: "/talk", visibility: 'user' },
+    { name: "Trading", url: "/trading", visibility: 'admin_user' },
   ];
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const currentMode = getUserMode(user);
+  const restrictedTab = tabs.find(t => t.visibility && pathname?.startsWith(t.url));
+  const isRestrictedPage = !!restrictedTab;
+  const canAccessPage = !restrictedTab || canAccess(restrictedTab.visibility!, currentMode);
+
+  React.useEffect(() => {
+    if (!loadingUser && isRestrictedPage && !canAccessPage) {
+      router.replace('/');
+    }
+  }, [loadingUser, isRestrictedPage, canAccessPage, router]);
 
   // Login handler
   const handleLogin = async () => {
@@ -80,12 +106,24 @@ export default function RootLayout({
       <body className={`antialiased bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900 dark:to-gray-950 dark:text-white`}>
         <header className="bg-gray-900">
           <nav aria-label="Global" className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
-            <div className="flex lg:flex-1">
+            <div className="flex md:flex-1 items-center">
               <a href="/" className="-m-1.5 p-1.5">
                 <span className="sr-only">Shivom Thakkar</span>
               </a>
+              {/* Mobile greeting */}
+              <div className="flex md:hidden items-center">
+                {loadingUser ? (
+                  <div className="animate-pulse h-4 w-24 rounded bg-gray-700" />
+                ) : user ? (
+                  <span className="text-sm font-normal text-white">
+                    Hi <span className="font-bold">{user?.given_name}</span>!
+                  </span>
+                ) : (
+                  <span className="text-sm font-normal text-white">Hello There!</span>
+                )}
+              </div>
             </div>
-            <div className="flex lg:hidden">
+            <div className="flex md:hidden">
               <button
                 type="button"
                 aria-label="Open main menu"
@@ -97,10 +135,17 @@ export default function RootLayout({
                 </svg>
               </button>
             </div>
-            <div className="hidden lg:flex items-center space-x-8">
-              {tabs.map((tab, idx) => (
+            <div className="hidden md:flex items-center space-x-8">
+              {tabs.map((tab, idx) => {
+                // Admin+ tabs: hide entirely when loading or inaccessible
+                if (tab.visibility && tab.visibility !== MODE_HIERARCHY[1] && (loadingUser || !canAccess(tab.visibility, currentMode))) {
+                  return null;
+                }
+                return (
                 <div key={tab.name} className="relative">
-                  {tab.options ? (
+                  {tab.visibility === MODE_HIERARCHY[1] && loadingUser ? (
+                    <div className="animate-pulse h-4 w-10 rounded bg-gray-700" />
+                  ) : tab.options ? (
                     <>
                       <button
                         className="flex items-center gap-x-1 text-sm font-semibold text-white cursor-pointer transition-transform duration-150 hover:scale-105"
@@ -139,16 +184,16 @@ export default function RootLayout({
                       )}
                     </>
                   ) : (
-                    tab.protected ? (
+                    tab.visibility ? (
                       <a
-                        href={user ? tab.url : undefined}
-                        className={`flex items-center gap-x-1 text-sm font-semibold text-white transition-transform duration-150 ${!user ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer hover:scale-105'}`}
-                        aria-disabled={!user}
-                        tabIndex={!user ? -1 : 0}
+                        href={canAccess(tab.visibility, currentMode) ? tab.url : undefined}
+                        className={`flex items-center gap-x-1 text-sm font-semibold text-white transition-transform duration-150 ${!canAccess(tab.visibility, currentMode) ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer hover:scale-105'}`}
+                        aria-disabled={!canAccess(tab.visibility, currentMode)}
+                        tabIndex={!canAccess(tab.visibility, currentMode) ? -1 : 0}
                       >
                         {tab.name}
-                        {!user && (
-                          <span className="ml-1 text-xs text-gray-400">(Login required)</span>
+                        {!canAccess(tab.visibility, currentMode) && (
+                          <LockOutlineIcon aria-label="Login required" className="ml-1 text-gray-400" style={{ fontSize: '0.75rem' }} />
                         )}
                       </a>
                     ) : (
@@ -156,13 +201,17 @@ export default function RootLayout({
                     )
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
-            <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+            <div className="hidden md:flex md:flex-1 md:justify-end">
               {loadingUser ? (
-                <span className="text-sm font-semibold text-white">Loading...</span>
+                <div className="animate-pulse h-4 w-28 rounded bg-gray-700" />
               ) : user ? (
-                <span className="text-sm font-semibold text-white">{user?.given_name} {user?.family_name}</span>
+                <span className="text-sm font-semibold text-white">
+                  {(user?.["custom:is_admin"] == "true") && <span className="mr-1 text-xs text-gray-400">(Admin)</span>}
+                  {user?.given_name} {user?.family_name}
+                </span>
               ) : (
                 <button
                   onClick={handleLogin}
@@ -191,19 +240,36 @@ export default function RootLayout({
               <div className="mt-6 flex-1 overflow-y-auto">
                 <div className="divide-y divide-white/10">
                   <div className="space-y-2 py-6">
-                    {tabs.map((tab) => (
-                      <a
-                        key={tab.name}
-                        href={tab.url}
-                        className="block rounded-lg px-3 py-2 text-base font-semibold text-white hover:bg-white/5"
-                      >
-                        {tab.name}
-                      </a>
-                    ))}
+                    {tabs.map((tab) => {
+                      // Admin+ tabs: hide entirely when loading or inaccessible
+                      if (tab.visibility && tab.visibility !== MODE_HIERARCHY[1] && (loadingUser || !canAccess(tab.visibility, currentMode))) {
+                        return null;
+                      }
+                      const accessible = !tab.visibility || canAccess(tab.visibility, currentMode);
+                      return loadingUser ? (
+                        <div key={tab.name} className="animate-pulse h-8 w-3/4 rounded-lg bg-gray-700 mx-3" />
+                      ) : accessible ? (
+                        <a
+                          key={tab.name}
+                          href={tab.url}
+                          className="block rounded-lg px-3 py-2 text-base font-semibold text-white hover:bg-white/5"
+                        >
+                          {tab.name}
+                        </a>
+                      ) : (
+                        <span
+                          key={tab.name}
+                          className="flex items-center gap-x-1 rounded-lg px-3 py-2 text-base font-semibold text-white opacity-50 cursor-not-allowed"
+                        >
+                          {tab.name}
+                          <LockOutlineIcon aria-label="Login required" className="ml-1 text-gray-400" style={{ fontSize: '0.75rem' }} />
+                        </span>
+                      );
+                    })}
                   </div>
                   <div className="py-6">
                     {loadingUser ? (
-                      <span className="block w-full rounded-lg px-3 py-2.5 text-base font-semibold text-white">Loading...</span>
+                      <div className="animate-pulse h-10 w-full rounded-lg bg-gray-700" />
                     ) : user ? (
                       <span className="block w-full rounded-lg px-3 py-2.5 text-base font-semibold text-white">{user?.signInDetails?.loginId || user?.username || user?.attributes?.name || user?.attributes?.email}</span>
                     ) : (
@@ -220,7 +286,21 @@ export default function RootLayout({
             </div>
           )}
         </header>
-        {children}
+        {isRestrictedPage && loadingUser ? (
+          <main className="mx-auto bg-[#0b1726] flex items-center justify-center p-8 min-h-[calc(100vh-88px)]">
+            <div className="w-[1200px] animate-pulse space-y-4 p-10">
+              <div className="h-8 bg-[#1e2e42] rounded w-1/4" />
+              <div className="h-4 bg-[#1e2e42] rounded w-1/3" />
+              <div className="pt-4 space-y-3">
+                <div className="h-4 bg-[#1e2e42] rounded w-full" />
+                <div className="h-4 bg-[#1e2e42] rounded w-5/6" />
+                <div className="h-4 bg-[#1e2e42] rounded w-4/6" />
+              </div>
+            </div>
+          </main>
+        ) : isRestrictedPage && !canAccessPage ? null : (
+          children
+        )}
       </body>
     </html>
   );

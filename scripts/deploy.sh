@@ -1,3 +1,14 @@
+# ## Build Issue with Terraform
+
+# On MacBook M2 Pro, you will get an error 
+# ```
+# Error: Failed to load plugin schemas
+#  Error while loading schemas for plugin components: Failed to obtain provider schema: Could not load the schema for provider registry.terraform.io/hashicorp/aws: failed to instantiate provider "registry.terraform.io/hashicorp/aws" to obtain schema: timeout while waiting for plugin to start..
+# ```
+
+# To fix it, use:
+# > export GODEBUG=asyncpreemptoff=1;
+
 #!/bin/bash
 set -e
 

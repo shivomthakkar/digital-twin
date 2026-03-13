@@ -25,8 +25,8 @@ export default async function BlogPage({ params }: BlogPageProps) {
 	}
 	const { frontmatter, content } = blog;
 	return (
-		<article className="mx-auto max-w-2xl py-10">
-			<h1 className="text-3xl font-bold text-white mb-4">{frontmatter.title}</h1>
+		<article className="mx-auto max-w-2xl px-6 py-10 sm:px-10 sm:py-14">
+			<h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4">{frontmatter.title}</h1>
 			<div className="flex items-center gap-x-4 text-xs mb-6">
 				<time dateTime={frontmatter.date} className="text-gray-400">
 					{new Date(frontmatter.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -35,7 +35,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
 					{frontmatter.category}
 				</span>
 			</div>
-			<div className='prose prose-md text-justify'>
+			<div className='prose prose-sm sm:prose-md text-justify'>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
             </div>
 		</article>

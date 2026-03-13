@@ -101,10 +101,10 @@ export default function Twin() {
     };
 
     return (
-        <div className="w-full">
+        <div className="w-full flex-1 flex flex-col">
             {/* Conversation Section */}
-            <div className="p-0">
-                <div className="w-full h-[380px] rounded-xl border border-[#3a4a5f] overflow-y-auto flex flex-col gap-4 p-6">
+            <div className="p-0 flex-1 flex flex-col">
+                <div className="w-full flex-1 lg:flex-none lg:h-[380px] rounded-xl border border-[#3a4a5f] overflow-y-auto flex flex-col gap-4 p-3 lg:p-6">
                     {/* Messages */}
                     {messages.length === 0 ? (
                         <div className="text-[#b0b8c1] text-center my-auto">No messages yet. Start the conversation below.</div>
@@ -112,7 +112,7 @@ export default function Twin() {
                         <>
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`relative max-w-[70%] px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-[#243244] text-white' : 'bg-[#162335] text-[#b0b8c1]'}
+                                    <div className={`relative max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-[#243244] text-white' : 'bg-[#162335] text-[#b0b8c1]'}
                                         ${msg.id === loadingMsgId ? 'animate-pulse' : ''}
                                     `}>
                                         {/* Message content or loading dots */}
@@ -134,12 +134,12 @@ export default function Twin() {
             {/* Footer Section (Input) */}
             <div className="p-0">
                 <form
-                    className="w-full h-[70px] rounded-lg border border-[#3a4a5f] flex items-center px-4 gap-4"
+                    className="w-full h-[70px] rounded-lg border border-[#3a4a5f] flex items-center px-2 sm:px-4 gap-2 sm:gap-4"
                     onSubmit={e => { e.preventDefault(); sendMessage(); }}
                 >
                     <input
                         type="text"
-                        className="flex-1 bg-transparent text-white placeholder-[#b0b8c1] outline-none border-none"
+                        className="flex-1 min-w-0 bg-transparent text-white placeholder-[#b0b8c1] outline-none border-none"
                         placeholder="Type your message..."
                         value={input}
                         onChange={e => setInput(e.target.value)}
@@ -148,11 +148,11 @@ export default function Twin() {
                     />
                     <button
                         type="submit"
-                        className="bg-[#243244] text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
+                        className="shrink-0 bg-[#243244] text-white px-2 sm:px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
                         disabled={isLoading || !input.trim()}
                     >
                         <Send size={20} />
-                        Send
+                        <span className="hidden sm:inline">Send</span>
                     </button>
                 </form>
             </div>
