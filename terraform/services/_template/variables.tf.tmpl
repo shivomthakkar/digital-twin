@@ -1,0 +1,52 @@
+# ===========================================================================
+# CONTRACT VARIABLES — copy this section verbatim into every new service.
+# cors_origins is wired automatically via data.terraform_remote_state.foundation
+# — no script injection needed.
+# ===========================================================================
+
+variable "project_name" {
+  description = "Name prefix for all resources"
+  type        = string
+  validation {
+    condition     = can(regex("^[a-z0-9-]+$", var.project_name))
+    error_message = "Project name must contain only lowercase letters, numbers, and hyphens."
+  }
+}
+
+variable "environment" {
+  description = "Environment name (dev, test, prod)"
+  type        = string
+  validation {
+    condition     = contains(["dev", "test", "prod"], var.environment)
+    error_message = "Environment must be one of: dev, test, prod."
+  }
+}
+
+# ===========================================================================
+# SERVICE-SPECIFIC VARIABLES — add your own below
+# ===========================================================================
+
+variable "lambda_timeout" {
+  description = "Lambda function timeout in seconds"
+  type        = number
+  default     = 30
+}
+
+variable "api_throttle_burst_limit" {
+  description = "API Gateway throttle burst limit"
+  type        = number
+  default     = 10
+}
+
+variable "api_throttle_rate_limit" {
+  description = "API Gateway throttle rate limit (req/s)"
+  type        = number
+  default     = 5
+}
+
+# REPLACE: add service-specific variables here, e.g.:
+# variable "database_url" {
+#   description = "Connection string for the service database"
+#   type        = string
+#   sensitive   = true
+# }

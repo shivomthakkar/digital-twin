@@ -9,6 +9,9 @@
 # To fix it, use:
 # > export GODEBUG=asyncpreemptoff=1;
 
+# ## To set AWS Profile
+# > export AWS_PROFILE=your-profile-name
+
 #!/bin/bash
 set -e
 
@@ -44,18 +47,29 @@ echo "🎯 Applying Terraform..."
 
 API_URL=$(terraform output -raw api_gateway_url)
 FRONTEND_BUCKET=$(terraform output -raw s3_frontend_bucket)
+CLOUDFRONT_URL=$(terraform output -raw cloudfront_url 2>/dev/null || true)
 CUSTOM_URL=$(terraform output -raw custom_domain_url 2>/dev/null || true)
+
+# Determine the frontend URL for Cognito redirects
+FRONTEND_URL="${CUSTOM_URL:-$CLOUDFRONT_URL}"
+if [ -n "$FRONTEND_URL" ] && [[ "$FRONTEND_URL" != */ ]]; then
+  FRONTEND_URL="$FRONTEND_URL/"
+fi
 
 # 3. Build + deploy frontend
 cd ../frontend
 
-# Create production environment file with API URL
-echo "📝 Setting API URL for production..."
-echo "NEXT_PUBLIC_API_URL=$API_URL" > .env.production
+# Create production environment file with API URL and Cognito redirect URLs
+echo "📝 Setting environment variables for production..."
+{
+  echo "NEXT_PUBLIC_TWIN_API_URL=$API_URL"
+  echo "NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_IN=$FRONTEND_URL"
+  echo "NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_OUT=$FRONTEND_URL"
+} > .env.production
 
 npm install
 npm run build
-aws s3 sync ./out "s3://$FRONTEND_BUCKET/"  --profile terraform --delete
+aws s3 sync ./out "s3://$FRONTEND_BUCKET/" --delete
 cd ..
 
 # 4. Final messages
