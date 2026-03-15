@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { authFetch } from '../lib/api';
 
 interface Message {
     id: string;
@@ -56,7 +59,7 @@ export default function Twin() {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/chat`, {
+            const response = await authFetch(`${process.env.NEXT_PUBLIC_TWIN_API_URL || 'http://localhost:8000'}/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -104,25 +107,32 @@ export default function Twin() {
         <div className="w-full flex-1 flex flex-col">
             {/* Conversation Section */}
             <div className="p-0 flex-1 flex flex-col">
-                <div className="w-full flex-1 lg:flex-none lg:h-[380px] rounded-xl border border-[#3a4a5f] overflow-y-auto flex flex-col gap-4 p-3 lg:p-6">
+                <div className="w-full flex-1 lg:flex-none lg:h-[540px] rounded-xl border border-[#3a4a5f] overflow-y-auto flex flex-col gap-4 p-3 lg:p-6">
                     {/* Messages */}
                     {messages.length === 0 ? (
                         <div className="text-[#b0b8c1] text-center my-auto">No messages yet. Start the conversation below.</div>
                     ) : (
                         <>
                             {messages.map((msg) => (
-                                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`relative max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-[#243244] text-white' : 'bg-[#162335] text-[#b0b8c1]'}
-                                        ${msg.id === loadingMsgId ? 'animate-pulse' : ''}
-                                    `}>
-                                        {/* Message content or loading dots */}
+                                msg.role === 'user' ? (
+                                    <div key={msg.id} className="flex justify-end">
+                                        <div className="relative max-w-[85%] sm:max-w-[70%] px-4 py-2 rounded-lg bg-[#243244] text-white">
+                                            {msg.content}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div key={msg.id} className={`w-full px-1 text-[#b0b8c1] ${msg.id === loadingMsgId ? 'animate-pulse' : ''}`}>
                                         {msg.id === loadingMsgId ? (
                                             <span className="inline-block min-w-[24px]">{loadingDots || '.'}</span>
                                         ) : (
-                                            msg.content
+                                            <div className="prose prose-invert prose-base max-w-none">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
+                                            </div>
                                         )}
                                     </div>
-                                </div>
+                                )
                             ))}
                             <div ref={messagesEndRef} />
                         </>

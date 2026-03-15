@@ -11,6 +11,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import "./globals.css";
 import React from "react";
 import Head from "next/head";
+import Link from "next/link";
 
 // Initialize Amplify once
 Amplify.configure({ Auth: amplifyConfig.Auth });
@@ -59,7 +60,7 @@ export default function RootLayout({
         setLoadingUser(false);
       }
     }
-    fetchUser();
+  fetchUser();
   }, []);
 
   // Navigation tabs config
@@ -107,19 +108,19 @@ export default function RootLayout({
         <header className="bg-gray-900">
           <nav aria-label="Global" className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
             <div className="flex md:flex-1 items-center">
-              <a href="/" className="-m-1.5 p-1.5">
+              <Link href="/" className="-m-1.5 p-1.5">
                 <span className="sr-only">Shivom Thakkar</span>
-              </a>
+              </Link>
               {/* Mobile greeting */}
               <div className="flex md:hidden items-center">
                 {loadingUser ? (
                   <div className="animate-pulse h-4 w-24 rounded bg-gray-700" />
                 ) : user ? (
-                  <span className="text-sm font-normal text-white">
+                  <span className="text-lg font-normal text-white">
                     Hi <span className="font-bold">{user?.given_name}</span>!
                   </span>
                 ) : (
-                  <span className="text-sm font-normal text-white">Hello There!</span>
+                  <span className="text-lg font-normal text-white">Hello There!</span>
                 )}
               </div>
             </div>
@@ -174,7 +175,7 @@ export default function RootLayout({
                                   {opt.icon}
                                 </div>
                                 <div className="flex-auto">
-                                  <a href={opt.url} className="block font-semibold text-white">{opt.name}</a>
+                                  <Link href={opt.url ? `/${opt.url}` : "/"} className="block font-semibold text-white">{opt.name}</Link>
                                   <p className="mt-1 text-gray-400">{opt.description}</p>
                                 </div>
                               </div>
@@ -185,19 +186,25 @@ export default function RootLayout({
                     </>
                   ) : (
                     tab.visibility ? (
-                      <a
-                        href={canAccess(tab.visibility, currentMode) ? tab.url : undefined}
-                        className={`flex items-center gap-x-1 text-sm font-semibold text-white transition-transform duration-150 ${!canAccess(tab.visibility, currentMode) ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer hover:scale-105'}`}
-                        aria-disabled={!canAccess(tab.visibility, currentMode)}
-                        tabIndex={!canAccess(tab.visibility, currentMode) ? -1 : 0}
-                      >
-                        {tab.name}
-                        {!canAccess(tab.visibility, currentMode) && (
+                      canAccess(tab.visibility, currentMode) ? (
+                        <Link
+                          href={tab.url}
+                          className="flex items-center gap-x-1 text-sm font-semibold text-white cursor-pointer transition-transform duration-150 hover:scale-105"
+                        >
+                          {tab.name}
+                        </Link>
+                      ) : (
+                        <span
+                          className="flex items-center gap-x-1 text-sm font-semibold text-white opacity-50 cursor-not-allowed pointer-events-none"
+                          aria-disabled={true}
+                          tabIndex={-1}
+                        >
+                          {tab.name}
                           <LockOutlineIcon aria-label="Login required" className="ml-1 text-gray-400" style={{ fontSize: '0.75rem' }} />
-                        )}
-                      </a>
+                        </span>
+                      )
                     ) : (
-                      <a href={tab.url} className="flex items-center gap-x-1 text-sm font-semibold text-white cursor-pointer transition-transform duration-150 hover:scale-105">{tab.name}</a>
+                      <Link href={tab.url ? `${tab.url}` : "/"} className="flex items-center gap-x-1 text-sm font-semibold text-white cursor-pointer transition-transform duration-150 hover:scale-105">{tab.name}</Link>
                     )
                   )}
                 </div>
@@ -249,17 +256,18 @@ export default function RootLayout({
                       return loadingUser ? (
                         <div key={tab.name} className="animate-pulse h-8 w-3/4 rounded-lg bg-gray-700 mx-3" />
                       ) : accessible ? (
-                        <a
+                        <Link
                           key={tab.name}
-                          href={tab.url}
-                          className="block rounded-lg px-3 py-2 text-base font-semibold text-white hover:bg-white/5"
+                          href={tab.url ? `${tab.url}` : "/"}
+                          className="block rounded-lg px-3 py-2 text-lg font-semibold text-white hover:bg-white/5"
+                          onClick={() => setMobileMenuOpen(false)}
                         >
                           {tab.name}
-                        </a>
+                        </Link>
                       ) : (
                         <span
                           key={tab.name}
-                          className="flex items-center gap-x-1 rounded-lg px-3 py-2 text-base font-semibold text-white opacity-50 cursor-not-allowed"
+                          className="flex items-center gap-x-1 rounded-lg px-3 py-2 text-lg font-semibold text-white opacity-50 cursor-not-allowed"
                         >
                           {tab.name}
                           <LockOutlineIcon aria-label="Login required" className="ml-1 text-gray-400" style={{ fontSize: '0.75rem' }} />
@@ -271,11 +279,11 @@ export default function RootLayout({
                     {loadingUser ? (
                       <div className="animate-pulse h-10 w-full rounded-lg bg-gray-700" />
                     ) : user ? (
-                      <span className="block w-full rounded-lg px-3 py-2.5 text-base font-semibold text-white">{user?.signInDetails?.loginId || user?.username || user?.attributes?.name || user?.attributes?.email}</span>
+                      <span className="block w-full rounded-lg px-3 py-2.5 text-lg font-semibold text-white">{user?.signInDetails?.loginId || user?.username || user?.attributes?.name || user?.attributes?.email}</span>
                     ) : (
                       <button
                         onClick={handleLogin}
-                        className="block w-full rounded-lg px-3 py-2.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
+                        className="block w-full rounded-lg px-3 py-2.5 text-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
                       >
                         Log In
                       </button>

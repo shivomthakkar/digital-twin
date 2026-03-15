@@ -1,3 +1,5 @@
+import { formatter } from '../lib/utils';
+
 type Stock = {
   symbol: string;
   name: string;
@@ -27,7 +29,7 @@ export default function TradingList({ stocks }: TradingListProps) {
           <tr key={idx} className="border-t border-gray-200 dark:border-gray-700">
             <td className="px-4 py-2 font-mono text-gray-900 dark:text-gray-100">{stock.symbol}</td>
             <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{stock.name}</td>
-            <td className="px-4 py-2 text-gray-900 dark:text-gray-100">${stock.price.toFixed(2)}</td>
+            <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{formatter.format(stock.price)}</td>
             <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{stock.change}</td>
             <td className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">{stock.trigger}</td>
           </tr>
