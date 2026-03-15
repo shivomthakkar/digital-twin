@@ -1,5 +1,3 @@
-from urllib.request import Request
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -160,7 +158,7 @@ def call_bedrock(conversation: List[Dict], user_message: str) -> str:
             raise HTTPException(status_code=500, detail=f"Bedrock error: {str(e)}")
 
 
-@app.api_route("/", methods=["GET", "OPTIONS"])
+@app.get("/")
 async def root():
     return {
         "message": "AI Digital Twin API (Powered by AWS Bedrock)",
@@ -170,7 +168,7 @@ async def root():
     }
 
 
-@app.api_route("/health", methods=["GET", "OPTIONS"])
+@app.get("/health")
 async def health_check():
     return {
         "status": "healthy", 
@@ -179,7 +177,7 @@ async def health_check():
     }
 
 
-@app.api_route("/chat", methods=["POST", "OPTIONS"], response_model=ChatResponse)
+@app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
         # Generate session ID if not provided
@@ -215,7 +213,7 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.api_route("/conversation/{session_id}", methods=["GET", "OPTIONS"])
+@app.get("/conversation/{session_id}")
 async def get_conversation(session_id: str):
     """Retrieve conversation history"""
     try:
@@ -223,7 +221,6 @@ async def get_conversation(session_id: str):
         return {"session_id": session_id, "messages": conversation}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 if __name__ == "__main__":
     import uvicorn
