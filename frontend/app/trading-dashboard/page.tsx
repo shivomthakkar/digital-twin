@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import TradingMetrics from '../../components/TradingMetrics';
 import TradingList from '../../components/TradingList';
+import LoginModal from '../../components/LoginModal';
 import { formatter } from '../../lib/utils';
 import { 
   getHoldings, 
@@ -10,12 +11,15 @@ import {
   getFunds, 
   getPNL, 
   getTradingMetrics,
-  getStockList,
+  getWatchlist,
+  addToWatchlist,
+  deleteFromWatchlist,
   type Holding,
   type Position,
   type Fund,
   type PNL,
   type TradingMetric,
+  type WatchlistStock,
 } from '../../lib/trading';
 
 export default function TradingPage() {
@@ -26,6 +30,25 @@ export default function TradingPage() {
   const [pnl, setPNL] = useState<PNL | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stocks, setStocks] = useState<WatchlistStock[]>([]);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  async function fetchWatchlist() {
+    const stocksData = await getWatchlist();
+    setStocks(stocksData);
+  }
+
+  async function handleAdd(symbol: string) {
+    const symbols = symbol.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    if (symbols.length === 0) return;
+    await addToWatchlist(symbols);
+    await fetchWatchlist();
+  }
+
+  async function handleDelete(symbol: string) {
+    await deleteFromWatchlist(symbol);
+    await fetchWatchlist();
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -49,6 +72,8 @@ export default function TradingPage() {
         // Generate metrics from fetched data
         const metricsData = await getTradingMetrics(fundsData, pnlData, holdingsData);
         setMetrics(metricsData);
+
+        await fetchWatchlist();
       } catch (err) {
         console.error('Error fetching trading data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load trading data');
@@ -60,8 +85,6 @@ export default function TradingPage() {
     fetchData();
   }, []);
 
-  const stocks = getStockList();
-
 
   return (
     <main>
@@ -70,7 +93,15 @@ export default function TradingPage() {
           <div style={{clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)'}} className="relative left-1/2 -z-10 aspect-[1155/678] w-[144.5rem] max-w-none -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-40rem)] sm:w-[288.75rem]" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold mb-6 text-white">Trading Dashboard</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-white">Trading Dashboard</h1>
+            <button
+              onClick={() => setIsLoginOpen(true)}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            >
+              Login
+            </button>
+          </div>
           
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded text-red-400">
@@ -158,12 +189,18 @@ export default function TradingPage() {
 
               <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-4 text-white">Watchlist</h2>
-                <TradingList stocks={stocks} />
+                <TradingList stocks={stocks} onRefresh={fetchWatchlist} onAdd={handleAdd} onDelete={handleDelete} />
               </div>
             </>
           )}
         </div>
       </div>
+
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSuccess={() => { setIsLoginOpen(false); }}
+      />
     </main>
   );
 }

@@ -1,7 +1,8 @@
 import { formatter } from './utils';
 import { authFetch } from './api';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_TRADING_API_URL || 'http://localhost:8000';
+const REAL_TIME_API_BASE_URL = process.env.NEXT_PUBLIC_REAL_TIME_API_URL || 'http://localhost:8001';
 
 export type Holding = {
   symbol: string;
@@ -40,6 +41,24 @@ export type PNL = {
 export type TradingMetric = {
   title: string;
   value: string | number | null;
+};
+
+export type WatchlistStock = {
+  symbol: string;
+  company_name: string;
+  current_price: string;
+  market_cap: string;
+  stock_pe: string;
+  sector: string;
+  roe: string;
+  roce: string;
+  dividend_yield: string;
+  book_value: string;
+  revenue: string;
+  operating_profit: string;
+  net_profit: string;
+  scraped_at: string;
+  company_url: string;
 };
 
 export async function getHoldings(): Promise<Holding[]> {
@@ -118,12 +137,53 @@ export async function getTradingMetrics(funds: Fund, pnl: PNL, holdings: Holding
   ];
 }
 
-export function getStockList() {
-  return [
-    { symbol: 'AAPL', name: 'Apple Inc.', price: 175.12, change: '+1.2%', trigger: 'Buy' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 2825.50, change: '-0.5%', trigger: 'Sell' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 3400.00, change: '+0.8%', trigger: 'Hold' },
-    { symbol: 'TSLA', name: 'Tesla Inc.', price: 900.10, change: '+2.1%', trigger: 'Buy' },
-    { symbol: 'MSFT', name: 'Microsoft Corp.', price: 299.35, change: '-1.0%', trigger: 'Sell' },
-  ];
+export async function generateToken(clientId: string, pin: string, totp: string): Promise<{ dhan_client_id: string; expiry_time: string }> {
+  const response = await authFetch(`${API_BASE_URL}/auth/generate-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dhan_client_id: clientId, pin, totp }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `Login failed: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function getWatchlist(): Promise<WatchlistStock[]> {
+  try {
+    const response = await authFetch(`${REAL_TIME_API_BASE_URL}/watchlist`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch watchlist: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return (Array.isArray(data) ? data : data.results) || [];
+  } catch (error) {
+    console.error('Error fetching watchlist:', error);
+    return [];
+  }
+}
+
+export async function addToWatchlist(symbols: string[]): Promise<void> {
+  const response = await authFetch(`${REAL_TIME_API_BASE_URL}/watchlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbols: symbols.map(s => s.trim().toUpperCase()) }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `Failed to add to watchlist: ${response.statusText}`);
+  }
+}
+
+export async function deleteFromWatchlist(symbol: string): Promise<void> {
+  const response = await authFetch(`${REAL_TIME_API_BASE_URL}/watchlist`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbols: [symbol.trim().toUpperCase()] }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `Failed to delete from watchlist: ${response.statusText}`);
+  }
 }

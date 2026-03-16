@@ -70,7 +70,7 @@ export default function RootLayout({
     // { name: "Certifications", url: "/certifications" },
     { name: "Contact", url: "/contact" },
     { name: "Chat", url: "/talk", visibility: 'user' },
-    { name: "Trading", url: "/trading", visibility: 'admin_user' },
+    { name: "Trading", url: "/trading-dashboard", visibility: 'admin_user' },
   ];
 
   const router = useRouter();
