@@ -1,0 +1,18 @@
+[project]
+name = "stock-scraper"
+version = "0.1.0"
+description = "Screener.in stock data scraper — fetches financial data and inserts into DynamoDB"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "boto3>=1.42.0",
+    "python-dotenv>=1.2.2",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+]
+
+[project.scripts]
+scrape-stock = "scraper:main"
+stock-scraper-server = "server:app"
