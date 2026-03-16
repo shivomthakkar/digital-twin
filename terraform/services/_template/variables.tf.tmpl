@@ -44,9 +44,43 @@ variable "api_throttle_rate_limit" {
   default     = 5
 }
 
+variable "enable_origin_protection" {
+  description = "Create a WAF WebACL that blocks direct API Gateway access (only CloudFront with the correct x-origin-verify header is allowed) (NOTE: Costs money). Recommended: true."
+  type        = bool
+  default     = false
+}
+
 # REPLACE: add service-specific variables here, e.g.:
 # variable "database_url" {
 #   description = "Connection string for the service database"
 #   type        = string
 #   sensitive   = true
 # }
+
+# ===========================================================================
+# CONTRACT VARIABLES — Cognito auth (copy to every service)
+# ===========================================================================
+
+variable "enable_cognito_auth" {
+  description = "Attach a Cognito JWT authorizer to the $default catch-all route. Set cognito_user_pool_id and cognito_app_client_id when enabling."
+  type        = bool
+  default     = false
+}
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID (e.g. us-east-1_XXXXXXXXX). Required when enable_cognito_auth=true."
+  type        = string
+  default     = null
+}
+
+variable "cognito_app_client_id" {
+  description = "Cognito App Client ID. Required when enable_cognito_auth=true."
+  type        = string
+  default     = null
+}
+
+variable "cognito_region" {
+  description = "AWS region where the Cognito User Pool lives."
+  type        = string
+  default     = "us-east-1"
+}
