@@ -27,19 +27,19 @@ variable "environment" {
 variable "enable_cognito_auth" {
   description = "Attach a Cognito JWT authorizer to the $default catch-all route. Set cognito_user_pool_id and cognito_app_client_id when enabling."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "cognito_user_pool_id" {
   description = "Cognito User Pool ID (e.g. ap-south-1_XXXXXXXXX). Required when enable_cognito_auth=true."
   type        = string
-  default     = "us-east-1_uhz7yREuQ"
+  default     = null
 }
 
 variable "cognito_app_client_id" {
   description = "Cognito App Client ID. Required when enable_cognito_auth=true."
   type        = string
-  default     = "2vn45ed6rbe1c9cg58b2vgpt5u"
+  default     = null
 }
 
 variable "cognito_region" {
