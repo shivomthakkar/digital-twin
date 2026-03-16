@@ -92,11 +92,23 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
 }
 
 # ---------------------------------------------------------------------------
+# Lambda package — uploaded to S3 to avoid the 70 MB direct-upload limit
+# ---------------------------------------------------------------------------
+
+resource "aws_s3_object" "lambda_zip" {
+  bucket = "twin-terraform-state-${data.aws_caller_identity.current.account_id}"
+  key    = "lambda-packages/twin-api/${var.environment}/lambda-deployment.zip"
+  source = "${path.module}/../../../backend/lambda-deployment.zip"
+  etag   = filemd5("${path.module}/../../../backend/lambda-deployment.zip")
+}
+
+# ---------------------------------------------------------------------------
 # Lambda function
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "api" {
-  filename         = "${path.module}/../../../backend/lambda-deployment.zip"
+  s3_bucket        = aws_s3_object.lambda_zip.bucket
+  s3_key           = aws_s3_object.lambda_zip.key
   function_name    = "${local.name_prefix}-twin-api"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda_handler.handler"

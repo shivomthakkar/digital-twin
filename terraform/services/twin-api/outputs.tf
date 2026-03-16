@@ -20,8 +20,9 @@ output "service_name" {
 locals {
   _pub_f           = data.terraform_remote_state.foundation.outputs
   _pub_cf_base     = try(local._pub_f.custom_domain_url, "") != "" ? local._pub_f.custom_domain_url : try(local._pub_f.cloudfront_url, "")
-  _pub_is_wired    = try(local._pub_f.attached_api_gateway_url, "") == aws_apigatewayv2_api.main.api_endpoint
-  _pub_path_prefix = local._pub_is_wired && length(try(local._pub_f.api_path_prefixes, [])) > 0 ? local._pub_f.api_path_prefixes[0] : ""
+  _wired_entry     = try(local._pub_f.wired_services["twin-api"], null)
+  _pub_is_wired    = local._wired_entry != null && try(local._wired_entry.gateway_url, "") == aws_apigatewayv2_api.main.api_endpoint
+  _pub_path_prefix = local._pub_is_wired ? try(local._wired_entry.path_prefixes[0], "") : ""
 }
 
 output "public_url" {
