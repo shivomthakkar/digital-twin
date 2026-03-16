@@ -14,13 +14,19 @@ locals {
     ManagedBy   = "terraform"
   }
 
-  # True when a service has been wired up to this CloudFront distribution.
-  attach_api         = var.api_gateway_url != "" && var.origin_verify_secret != ""
-  api_gateway_domain = local.attach_api ? replace(replace(var.api_gateway_url, "https://", ""), "http://", "") : ""
+  # Active services: those with a non-empty gateway_url and verify_secret.
+  active_services = { for k, v in var.api_services : k => v if v.gateway_url != "" && v.verify_secret != "" }
 
-  # Build a map of { prefix => path_pattern } used for cache behaviors and the rewrite function.
-  # e.g. { "/api" => "/api*", "/v2" => "/v2*" }
-  api_prefix_map = { for p in var.api_path_prefixes : p => "${p}*" }
+  # Flat map: path_prefix => { svc_name, path_pattern }
+  # Creates one CloudFront cache behavior per path prefix, routed to the owning service's origin.
+  cache_behaviors = merge([
+    for svc_name, svc in local.active_services : {
+      for p in svc.path_prefixes : p => {
+        svc_name     = svc_name
+        path_pattern = "${p}/*"
+      }
+    }
+  ]...)
 }
 
 # ---------------------------------------------------------------------------
@@ -66,20 +72,19 @@ resource "aws_s3_bucket_policy" "frontend" {
 }
 
 # ---------------------------------------------------------------------------
-# CloudFront Function — strips /api prefix before forwarding to APIG origin
+# CloudFront Functions — one per service, each stripping only its own prefix(es)
 # ---------------------------------------------------------------------------
 
-resource "aws_cloudfront_function" "api_rewrite" {
-  count   = local.attach_api ? 1 : 0
-  name    = "${local.name_prefix}-api-rewrite"
+resource "aws_cloudfront_function" "path_rewrite" {
+  for_each = local.active_services
+
+  name    = "${local.name_prefix}-${each.key}-rewrite"
   runtime = "cloudfront-js-2.0"
-  comment = "Strip configured path prefixes before forwarding to API Gateway"
+  comment = "Strip path prefix(es) for ${each.key} before forwarding to API Gateway"
   publish = true
 
-  # Build a JS array literal from the prefixes list so the function is driven
-  # entirely by the Terraform variable — no manual edits needed when prefixes change.
   code = <<-EOF
-    var PREFIXES = ${jsonencode(var.api_path_prefixes)};
+    var PREFIXES = ${jsonencode(each.value.path_prefixes)};
     function handler(event) {
       var req = event.request;
       for (var i = 0; i < PREFIXES.length; i++) {
@@ -118,17 +123,17 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # API Gateway origin — only added once a service has been deployed
+  # API Gateway origins — one per wired service, each with its own x-origin-verify secret
   dynamic "origin" {
-    for_each = local.attach_api ? [1] : []
+    for_each = local.active_services
     content {
-      domain_name = local.api_gateway_domain
-      origin_id   = "APIG-${local.name_prefix}"
+      domain_name = replace(replace(origin.value.gateway_url, "https://", ""), "http://", "")
+      origin_id   = "APIG-${origin.key}"
 
       # CloudFront adds this header; WAF on the APIG stage blocks requests missing it
       custom_header {
         name  = "x-origin-verify"
-        value = var.origin_verify_secret
+        value = origin.value.verify_secret
       }
 
       custom_origin_config {
@@ -145,14 +150,14 @@ resource "aws_cloudfront_distribution" "main" {
   default_root_object = "index.html"
   tags                = local.common_tags
 
-  # One cache behavior per configured path prefix, all forwarded to APIG with TTL=0
+  # One cache behavior per configured path prefix, routed to the owning service's origin
   dynamic "ordered_cache_behavior" {
-    for_each = local.attach_api ? local.api_prefix_map : {}
+    for_each = local.cache_behaviors
     content {
-      path_pattern     = ordered_cache_behavior.value # e.g. "/api*"
+      path_pattern     = ordered_cache_behavior.value.path_pattern
       allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
       cached_methods   = ["GET", "HEAD"]
-      target_origin_id = "APIG-${local.name_prefix}"
+      target_origin_id = "APIG-${ordered_cache_behavior.value.svc_name}"
 
       # Forward auth + content headers; pass all query strings; no cookie forwarding
       forwarded_values {
@@ -169,7 +174,7 @@ resource "aws_cloudfront_distribution" "main" {
       # Strip the matched prefix so FastAPI receives clean paths
       function_association {
         event_type   = "viewer-request"
-        function_arn = aws_cloudfront_function.api_rewrite[0].arn
+        function_arn = aws_cloudfront_function.path_rewrite[ordered_cache_behavior.value.svc_name].arn
       }
     }
   }

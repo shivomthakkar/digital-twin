@@ -32,25 +32,12 @@ variable "root_domain" {
 # API Gateway CloudFront integration — auto-populated by deploy-service.sh
 # ---------------------------------------------------------------------------
 
-variable "api_gateway_url" {
-  description = "HTTPS base URL of the API Gateway to expose via CloudFront. Auto-written to service-endpoints.auto.tfvars by deploy-service.sh."
-  type        = string
-  default     = ""
-}
-
-variable "api_path_prefixes" {
-  description = "List of path prefixes to route to the API Gateway (e.g. [\"/api\", \"/v2\"]). Each prefix gets its own CloudFront cache behavior and the prefix is stripped before forwarding. Auto-written by deploy-service.sh."
-  type        = list(string)
-  default     = ["/api"]
-  validation {
-    condition     = alltrue([for p in var.api_path_prefixes : startswith(p, "/")])
-    error_message = "Every api_path_prefix must start with '/'"
-  }
-}
-
-variable "origin_verify_secret" {
-  description = "Secret sent as x-origin-verify header from CloudFront to API Gateway to prove requests originate from the CDN. Auto-written by deploy-service.sh."
-  type        = string
-  default     = ""
-  sensitive   = true
+variable "api_services" {
+  description = "Map of service name → endpoint config. Managed by deploy-service.sh via service-endpoints.auto.tfvars.json. Adding a new service requires no changes here."
+  type = map(object({
+    gateway_url   = string
+    verify_secret = string
+    path_prefixes = list(string)
+  }))
+  default = {}
 }

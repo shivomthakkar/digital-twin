@@ -17,11 +17,15 @@ output "s3_frontend_bucket" {
 # It contains the exact value to set as CORS_ORIGINS on each Lambda so that
 # requests from the frontend are permitted.
 output "cors_origins" {
-  description = "Allowed CORS origins derived from the live frontend URL"
+  description = "Allowed CORS origins derived from the live frontend URL (always includes localhost:3000 for local dev)"
   value = var.use_custom_domain && var.root_domain != "" ? join(",", [
     "https://${var.root_domain}",
-    "https://www.${var.root_domain}"
-  ]) : "https://${aws_cloudfront_distribution.main.domain_name}"
+    "https://www.${var.root_domain}",
+    "http://localhost:3000"
+  ]) : join(",", [
+    "https://${aws_cloudfront_distribution.main.domain_name}",
+    "http://localhost:3000"
+  ])
 }
 
 output "custom_domain_url" {
@@ -46,16 +50,9 @@ output "root_domain" {
   value       = var.root_domain
 }
 
-output "attached_api_gateway_url" {
-  description = "API Gateway URL currently wired as a CloudFront origin (empty string when nothing is wired)"
-  value       = local.attach_api ? var.api_gateway_url : ""
-  sensitive   = true
-}
-
-output "api_path_prefixes" {
-  description = "Path prefixes currently routed from CloudFront to the API Gateway origin (empty list when nothing is wired)"
-  value       = local.attach_api ? var.api_path_prefixes : []
-  sensitive   = true
+output "wired_services" {
+  description = "Map of service name → { gateway_url, path_prefixes } for services currently wired as CloudFront origins (no secrets exposed)"
+  value       = { for k, v in local.active_services : k => { gateway_url = v.gateway_url, path_prefixes = v.path_prefixes } }
 }
 
 output "user_profiles_table_name" {
