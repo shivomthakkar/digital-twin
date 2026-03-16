@@ -74,12 +74,13 @@ destroy_service() {
     -var="environment=${ENV}" \
     -auto-approve
 
-  # Remove the auto.tfvars that wires this service into CloudFront so that a
-  # subsequent setup-infra.sh run does not try to reference the deleted APIG.
-  ENDPOINTS_TFVARS="$ROOT/terraform/foundation/service-endpoints.auto.tfvars"
-  if [[ -f "$ENDPOINTS_TFVARS" ]]; then
-    echo "  Removing foundation/service-endpoints.auto.tfvars..."
-    rm "$ENDPOINTS_TFVARS"
+  # Remove this service's entry from the shared endpoints JSON so CloudFront
+  # no longer routes traffic to the destroyed API Gateway.
+  ENDPOINTS_JSON="$ROOT/terraform/foundation/service-endpoints.auto.tfvars.json"
+  if [[ -f "$ENDPOINTS_JSON" ]]; then
+    echo "  Removing '${SERVICE}' from foundation/service-endpoints.auto.tfvars.json..."
+    UPDATED=$(jq --arg key "$SERVICE" 'del(.api_services[$key])' "$ENDPOINTS_JSON")
+    echo "$UPDATED" > "$ENDPOINTS_JSON"
   fi
 
   echo "✅ Service '${SERVICE}' destroyed."

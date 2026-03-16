@@ -20,9 +20,9 @@ backend/.env
 backend/.env.*
 backend/!.env.example
 
-frontend/.env
-frontend/.env.*
-frontend/!.env.example
+*/.env
+*/.env.*
+*/!.env.example
 
 # Node
 frontend/node_modules/
