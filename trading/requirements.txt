@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+mangum
+dhanhq>=2.0.0
+python-dotenv>=0.19.0
+boto3
+httpx
+python-jose[cryptography]
