@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from dhanhq import dhanhq
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from typing import Literal, Optional
 from pydantic import BaseModel
 import os
 
@@ -40,6 +41,63 @@ class GenerateTokenRequest(BaseModel):
     dhan_client_id: str
     pin: str
     totp: str
+
+
+class PlaceOrderRequest(BaseModel):
+    security_id: str
+    exchange_segment: Literal["NSE_EQ", "BSE_EQ", "NSE_FNO", "BSE_FNO", "NSE_CURRENCY", "MCX_COMM"]
+    transaction_type: Literal["BUY", "SELL"]
+    quantity: int
+    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"]
+    product_type: Literal["CNC", "INTRADAY", "MARGIN", "CO", "BO", "MTF"]
+    price: float = 0.0
+    trigger_price: float = 0.0
+    disclosed_quantity: int = 0
+    after_market_order: bool = False
+    validity: Literal["DAY", "IOC"] = "DAY"
+    amo_time: Literal["PRE_OPEN", "OPEN", "OPEN_30", "OPEN_60"] = "OPEN"
+    tag: Optional[str] = None
+
+
+class ModifyOrderRequest(BaseModel):
+    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"]
+    leg_name: str = ""
+    quantity: int
+    price: float
+    trigger_price: float = 0.0
+    disclosed_quantity: int = 0
+    validity: Literal["DAY", "IOC"] = "DAY"
+
+
+class PlaceForeverOrderRequest(BaseModel):
+    security_id: str
+    exchange_segment: Literal["NSE_EQ", "BSE_EQ", "NSE_FNO", "BSE_FNO", "NSE_CURRENCY", "MCX_COMM"]
+    transaction_type: Literal["BUY", "SELL"]
+    product_type: Literal["CNC", "INTRADAY", "MARGIN", "CO", "BO", "MTF"]
+    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"]
+    quantity: int
+    price: float
+    trigger_price: float
+    order_flag: Literal["SINGLE", "OCO"] = "SINGLE"
+    disclosed_quantity: int = 0
+    validity: Literal["DAY", "IOC"] = "DAY"
+    symbol: str = ""
+    # OCO second-leg fields (required when order_flag="OCO")
+    price1: float = 0.0
+    trigger_price1: float = 0.0
+    quantity1: int = 0
+    tag: Optional[str] = None
+
+
+class ModifyForeverOrderRequest(BaseModel):
+    order_flag: Literal["SINGLE", "OCO"]
+    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"]
+    leg_name: str
+    quantity: int
+    price: float
+    trigger_price: float = 0.0
+    disclosed_quantity: int = 0
+    validity: Literal["DAY", "IOC"] = "DAY"
 
 
 @app.post("/auth/generate-token")
@@ -272,6 +330,188 @@ def get_funds(broker: dhanhq = Depends(get_current_broker)):
         return result
     except Exception as e:
         return JSONResponse({"error": f"Error fetching fund details: {str(e)}"}, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# Order management endpoints
+# ---------------------------------------------------------------------------
+
+def _order_error_response(response: dict, action: str):
+    """Return a JSONResponse from a failed dhanhq API response."""
+    remarks = response.get("remarks", {}) if response else {}
+    if isinstance(remarks, str):
+        msg = remarks
+        code = None
+    else:
+        msg = remarks.get("error_message", f"Failed to {action}.")
+        code = remarks.get("error_code")
+    status_code = 401 if code == "DH-901" else 502
+    return JSONResponse({"error": msg}, status_code=status_code)
+
+
+@app.post("/orders")
+def place_order(body: PlaceOrderRequest, broker: dhanhq = Depends(get_current_broker)):
+    """Place a new order (BUY/SELL, MARKET/LIMIT/STOP_LOSS/STOP_LOSS_MARKET)."""
+    try:
+        result = broker.place_order(
+            security_id=body.security_id,
+            exchange_segment=body.exchange_segment,
+            transaction_type=body.transaction_type,
+            quantity=body.quantity,
+            order_type=body.order_type,
+            product_type=body.product_type,
+            price=body.price,
+            trigger_price=body.trigger_price,
+            disclosed_quantity=body.disclosed_quantity,
+            after_market_order=body.after_market_order,
+            validity=body.validity,
+            amo_time=body.amo_time,
+            tag=body.tag,
+        )
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "place order")
+        return {"status": result.get("status"), "order_id": result.get("data"), "remarks": result.get("remarks")}
+    except Exception as e:
+        return JSONResponse({"error": f"Error placing order: {str(e)}"}, status_code=500)
+
+
+@app.get("/orders")
+def list_orders(broker: dhanhq = Depends(get_current_broker)):
+    """Retrieve all orders placed during the current trading day."""
+    try:
+        result = broker.get_order_list()
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "fetch orders")
+        return {"orders": result.get("data", []), "total": len(result.get("data", []))}
+    except Exception as e:
+        return JSONResponse({"error": f"Error fetching orders: {str(e)}"}, status_code=500)
+
+
+@app.get("/orders/{order_id}")
+def get_order(order_id: str, broker: dhanhq = Depends(get_current_broker)):
+    """Retrieve details of a specific order by its ID."""
+    try:
+        result = broker.get_order_by_id(order_id)
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "fetch order")
+        if not result.get("data"):
+            return JSONResponse({"error": "Order not found."}, status_code=404)
+        return result.get("data")
+    except Exception as e:
+        return JSONResponse({"error": f"Error fetching order: {str(e)}"}, status_code=500)
+
+
+@app.put("/orders/{order_id}")
+def modify_order(order_id: str, body: ModifyOrderRequest, broker: dhanhq = Depends(get_current_broker)):
+    """Modify a pending order's price, quantity, order type, or validity."""
+    try:
+        result = broker.modify_order(
+            order_id=order_id,
+            order_type=body.order_type,
+            leg_name=body.leg_name,
+            quantity=body.quantity,
+            price=body.price,
+            trigger_price=body.trigger_price,
+            disclosed_quantity=body.disclosed_quantity,
+            validity=body.validity,
+        )
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "modify order")
+        return {"status": result.get("status"), "order_id": result.get("data"), "remarks": result.get("remarks")}
+    except Exception as e:
+        return JSONResponse({"error": f"Error modifying order: {str(e)}"}, status_code=500)
+
+
+@app.delete("/orders/{order_id}")
+def cancel_order(order_id: str, broker: dhanhq = Depends(get_current_broker)):
+    """Cancel a pending order by its ID."""
+    try:
+        result = broker.cancel_order(order_id)
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "cancel order")
+        return {"status": result.get("status"), "order_id": order_id, "message": "Order cancelled successfully."}
+    except Exception as e:
+        return JSONResponse({"error": f"Error cancelling order: {str(e)}"}, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# Forever / GTT order endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/forever/orders")
+def place_forever_order(body: PlaceForeverOrderRequest, broker: dhanhq = Depends(get_current_broker)):
+    """Place a Forever (GTT) order. Use order_flag='OCO' for a two-leg target+stoploss order."""
+    try:
+        result = broker.place_forever(
+            security_id=body.security_id,
+            exchange_segment=body.exchange_segment,
+            transaction_type=body.transaction_type,
+            product_type=body.product_type,
+            order_type=body.order_type,
+            quantity=body.quantity,
+            price=body.price,
+            trigger_Price=body.trigger_price,
+            order_flag=body.order_flag,
+            disclosed_quantity=body.disclosed_quantity,
+            validity=body.validity,
+            price1=body.price1,
+            trigger_Price1=body.trigger_price1,
+            quantity1=body.quantity1,
+            tag=body.tag,
+            symbol=body.symbol,
+        )
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "place forever order")
+        return {"status": result.get("status"), "order_id": result.get("data"), "remarks": result.get("remarks")}
+    except Exception as e:
+        return JSONResponse({"error": f"Error placing forever order: {str(e)}"}, status_code=500)
+
+
+@app.get("/forever/orders")
+def list_forever_orders(broker: dhanhq = Depends(get_current_broker)):
+    """Retrieve all active Forever (GTT) orders."""
+    try:
+        result = broker.get_forever()
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "fetch forever orders")
+        return {"forever_orders": result.get("data", []), "total": len(result.get("data", []))}
+    except Exception as e:
+        return JSONResponse({"error": f"Error fetching forever orders: {str(e)}"}, status_code=500)
+
+
+@app.put("/forever/orders/{order_id}")
+def modify_forever_order(order_id: str, body: ModifyForeverOrderRequest, broker: dhanhq = Depends(get_current_broker)):
+    """Modify a Forever (GTT) order by leg name."""
+    try:
+        result = broker.modify_forever(
+            order_id=order_id,
+            order_flag=body.order_flag,
+            order_type=body.order_type,
+            leg_name=body.leg_name,
+            quantity=body.quantity,
+            price=body.price,
+            trigger_price=body.trigger_price,
+            disclosed_quantity=body.disclosed_quantity,
+            validity=body.validity,
+        )
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "modify forever order")
+        return {"status": result.get("status"), "order_id": result.get("data"), "remarks": result.get("remarks")}
+    except Exception as e:
+        return JSONResponse({"error": f"Error modifying forever order: {str(e)}"}, status_code=500)
+
+
+@app.delete("/forever/orders/{order_id}")
+def cancel_forever_order(order_id: str, broker: dhanhq = Depends(get_current_broker)):
+    """Cancel a Forever (GTT) order by its ID."""
+    try:
+        result = broker.cancel_forever(order_id)
+        if not result or result.get("status") == "failure":
+            return _order_error_response(result, "cancel forever order")
+        return {"status": result.get("status"), "order_id": order_id, "message": "Forever order cancelled successfully."}
+    except Exception as e:
+        return JSONResponse({"error": f"Error cancelling forever order: {str(e)}"}, status_code=500)
+
 
 if __name__ == "__main__":
     import uvicorn
