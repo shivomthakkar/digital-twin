@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import TradingMetrics from '../../components/TradingMetrics';
 import TradingList from '../../components/TradingList';
 import LoginModal from '../../components/LoginModal';
@@ -21,6 +21,7 @@ import {
   type TradingMetric,
   type WatchlistStock,
 } from '../../lib/trading';
+import ChatWindow, { ChatWindowRef, ChatMessage } from '@/components/ChatWindow';
 
 export default function TradingPage() {
   const [metrics, setMetrics] = useState<TradingMetric[]>([]);
@@ -32,23 +33,34 @@ export default function TradingPage() {
   const [error, setError] = useState<string | null>(null);
   const [stocks, setStocks] = useState<WatchlistStock[]>([]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const chatWindowRef = useRef<ChatWindowRef>(null);
 
-  async function fetchWatchlist() {
-    const stocksData = await getWatchlist();
-    setStocks(stocksData);
-  }
+  const handleChatMessage = async (history: ChatMessage[]) => {
+    console.log(history);
+    // Wait 2 seconds
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  async function handleAdd(symbol: string) {
-    const symbols = symbol.split(',').map(s => s.trim()).filter(s => s.length > 0);
-    if (symbols.length === 0) return;
-    await addToWatchlist(symbols);
-    await fetchWatchlist();
-  }
+    // Update the loading message with the response
+    const lastUserMessage = [...history].reverse().find(m => m.sender === 'user')?.text ?? '';
+    chatWindowRef.current?.addMessage(`Echo: ${lastUserMessage}`);
+  };
 
-  async function handleDelete(symbol: string) {
-    await deleteFromWatchlist(symbol);
-    await fetchWatchlist();
-  }
+  // async function fetchWatchlist() {
+  //   const stocksData = await getWatchlist();
+  //   setStocks(stocksData);
+  // }
+
+  // async function handleAdd(symbol: string) {
+  //   const symbols = symbol.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  //   if (symbols.length === 0) return;
+  //   await addToWatchlist(symbols);
+  //   await fetchWatchlist();
+  // }
+
+  // async function handleDelete(symbol: string) {
+  //   await deleteFromWatchlist(symbol);
+  //   await fetchWatchlist();
+  // }
 
   useEffect(() => {
     async function fetchData() {
@@ -73,7 +85,7 @@ export default function TradingPage() {
         const metricsData = await getTradingMetrics(fundsData, pnlData, holdingsData);
         setMetrics(metricsData);
 
-        await fetchWatchlist();
+        // await fetchWatchlist();
       } catch (err) {
         console.error('Error fetching trading data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load trading data');
@@ -187,10 +199,10 @@ export default function TradingPage() {
                 </div>
               )}
 
-              <div className="mb-8">
+              {/* <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-4 text-white">Watchlist</h2>
                 <TradingList stocks={stocks} onRefresh={fetchWatchlist} onAdd={handleAdd} onDelete={handleDelete} />
-              </div>
+              </div> */}
             </>
           )}
         </div>
@@ -200,6 +212,12 @@ export default function TradingPage() {
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
         onSuccess={() => { setIsLoginOpen(false); }}
+      />
+
+      <ChatWindow
+        ref={chatWindowRef}
+        title="Trading Support"
+        onSendMessage={handleChatMessage}
       />
     </main>
   );
