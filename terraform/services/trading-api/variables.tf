@@ -47,3 +47,17 @@ variable "cognito_region" {
   type        = string
   default     = "us-east-1"
 }
+
+# ===========================================================================
+# Dhanhq configuration — sandbox or prod mode
+# ===========================================================================
+
+variable "dhan_mode" {
+  description = "Dhan broker API mode: 'sandbox' or 'prod'. Passed to deploy.py to patch dhanhq base_url."
+  type        = string
+  default     = "sandbox"
+  validation {
+    condition     = contains(["sandbox", "prod"], var.dhan_mode)
+    error_message = "dhan_mode must be either 'sandbox' or 'prod'."
+  }
+}

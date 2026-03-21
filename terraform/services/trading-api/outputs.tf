@@ -40,3 +40,8 @@ output "lambda_function_name" {
   description = "Lambda function name"
   value       = aws_lambda_function.api.function_name
 }
+
+output "lambda_function_arn" {
+  description = "Lambda function ARN (used by twin-api for direct invocation)"
+  value       = aws_lambda_function.api.arn
+}

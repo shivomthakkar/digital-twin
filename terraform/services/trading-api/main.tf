@@ -92,6 +92,7 @@ resource "aws_lambda_function" "api" {
       CORS_ORIGINS         = data.terraform_remote_state.foundation.outputs.cors_origins
       USER_PROFILES_TABLE  = data.terraform_remote_state.foundation.outputs.user_profiles_table_name
       ORIGIN_VERIFY_SECRET = random_password.origin_secret.result
+      DHAN_MODE            = var.dhan_mode
     }
   }
 }

@@ -76,6 +76,17 @@ echo "   State          : s3://${STATE_BUCKET}/${STATE_KEY}"
 echo ""
 
 # ---------------------------------------------------------------------------
+# Environment-specific configuration (dhan_mode for trading-api)
+# ---------------------------------------------------------------------------
+
+# Map environment to DHAN_MODE: dev/test -> sandbox, prod -> prod
+if [[ "$ENV" == "prod" ]]; then
+  DHAN_MODE="prod"
+else
+  DHAN_MODE="sandbox"
+fi
+
+# ---------------------------------------------------------------------------
 # Lambda build dispatch — add an elif block for each new service
 # ---------------------------------------------------------------------------
 echo "📦 Building Lambda package for ${SERVICE}..."
@@ -84,7 +95,7 @@ if [[ "$SERVICE" == "twin-api" ]]; then
   (cd "$ROOT/backend" && uv run deploy.py)
 
 elif [[ "$SERVICE" == "trading-api" ]]; then
-  (cd "$ROOT/trading" && uv run deploy.py)
+  (cd "$ROOT/trading" && DHAN_MODE="$DHAN_MODE" uv run deploy.py)
 
 elif [[ "$SERVICE" == "stock-scraper-api" ]]; then
   (cd "$ROOT/stock_scraper" && uv run deploy.py)
@@ -116,6 +127,12 @@ COGNITO_VARS=()
 [[ -n "${COGNITO_APP_CLIENT_ID:-}" ]] && COGNITO_VARS+=(-var="cognito_app_client_id=${COGNITO_APP_CLIENT_ID}")
 [[ -n "${COGNITO_REGION:-}" ]]        && COGNITO_VARS+=(-var="cognito_region=${COGNITO_REGION}")
 
+# Service-specific terraform vars
+SERVICE_VARS=()
+if [[ "$SERVICE" == "trading-api" ]]; then
+  SERVICE_VARS+=(-var="dhan_mode=${DHAN_MODE}")
+fi
+
 terraform -chdir="$TF_DIR" init -input=false \
   -backend-config="bucket=${STATE_BUCKET}" \
   -backend-config="key=${STATE_KEY}" \
@@ -126,6 +143,7 @@ terraform -chdir="$TF_DIR" apply \
   -var="environment=${ENV}" \
   "${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"}" \
   "${COGNITO_VARS[@]+"${COGNITO_VARS[@]}"}" \
+  "${SERVICE_VARS[@]+"${SERVICE_VARS[@]}"}" \
   -auto-approve
 
 # Capture contract outputs for console display

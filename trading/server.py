@@ -136,7 +136,9 @@ def auth_renew_token(user_id: str = Depends(get_current_user)):
 def get_holdings(broker: dhanhq = Depends(get_current_broker)):
     """Get current holdings from Dhan account"""
     try:
+        print("Fetching holdings for user")
         holdings = broker.get_holdings()
+        print("Here2", holdings)
         if not holdings or holdings.get('status') == 'failure':
             remarks = holdings.get('remarks', {}) if holdings else {}
             return JSONResponse({"error": remarks.get('error_message', 'Failed to fetch holdings.')}, status_code=401 if remarks.get('error_code') == 'DH-901' else 502)
@@ -369,6 +371,7 @@ def place_order(body: PlaceOrderRequest, broker: dhanhq = Depends(get_current_br
             tag=body.tag,
         )
         if not result or result.get("status") == "failure":
+            print(result)
             return _order_error_response(result, "place order")
         return {"status": result.get("status"), "order_id": result.get("data"), "remarks": result.get("remarks")}
     except Exception as e:
@@ -511,6 +514,32 @@ def cancel_forever_order(order_id: str, broker: dhanhq = Depends(get_current_bro
         return {"status": result.get("status"), "order_id": order_id, "message": "Forever order cancelled successfully."}
     except Exception as e:
         return JSONResponse({"error": f"Error cancelling forever order: {str(e)}"}, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# Health check endpoint
+# ---------------------------------------------------------------------------
+
+@app.get("/health")
+def health_check(user_id: str = Depends(get_current_user), broker: dhanhq = Depends(get_current_broker)):
+    """
+    Health check endpoint — requires JWT authentication.
+    Returns service status and current dhanhq operating mode (sandbox or prod).
+    """
+    # Detect current mode from the broker's base_url
+    current_url = broker.base_url
+    if "sandbox" in current_url:
+        mode = "sandbox"
+    elif "api.dhan.co" in current_url:
+        mode = "prod"
+    else:
+        mode = "unknown"
+    
+    return {
+        "status": "healthy",
+        "mode": mode,
+        "base_url": current_url
+    }
 
 
 if __name__ == "__main__":

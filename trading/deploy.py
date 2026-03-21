@@ -11,6 +11,7 @@ default list when no .gitignore is found.
 
 import fnmatch
 import os
+import re
 import shutil
 import subprocess
 import zipfile
@@ -143,6 +144,42 @@ def main():
         )
     else:
         print("  No requirements.txt — skipping dependency install.")
+
+    # Patch dhanhq base_url based on DHAN_MODE environment variable
+    dhan_mode = os.environ.get("DHAN_MODE", "sandbox")
+    dhan_config = {
+        "sandbox": "https://sandbox.dhan.co/v2",
+        "prod": "https://api.dhan.co/v2",
+    }
+    dhan_base_url = dhan_config.get(dhan_mode, dhan_config["prod"])
+    
+    dhanhq_file = pkg_dir / "dhanhq" / "dhanhq.py"
+    if dhanhq_file.exists():
+        print(f"🔧 Patching dhanhq base_url to {dhan_base_url} (DHAN_MODE={dhan_mode})...")
+        with open(dhanhq_file, "r") as f:
+            content = f.read()
+        
+        # Use regex to find and replace the self.base_url line flexibly
+        # Matches: self.base_url = 'https://...' or "https://..." with optional whitespace
+        pattern = r'(self\.base_url\s*=\s*)["\']https://[^"\']*["\']'
+        replacement = f'\\1\'{dhan_base_url}\''
+        
+        if re.search(pattern, content):
+            new_content = re.sub(pattern, replacement, content)
+            with open(dhanhq_file, "w") as f:
+                f.write(new_content)
+            print(f"  ✓ dhanhq patched for {dhan_mode} mode")
+        else:
+            # Provide diagnostics if pattern not found
+            print(f"  ⚠ Warning: Could not find expected dhanhq base_url line to patch")
+            # Try to find similar lines for debugging
+            if "self.base_url" in content:
+                print(f"    (Found 'self.base_url' in file but pattern didn't match)")
+                for i, line in enumerate(content.split('\n'), 1):
+                    if "self.base_url" in line and "dhan.co" in line:
+                        print(f"    Line {i}: {line.strip()}")
+    else:
+        print(f"  ⚠ Warning: dhanhq module not found in lambda-package (not installed?)")
 
     # Collect source files
     print("📂 Collecting source files...")
