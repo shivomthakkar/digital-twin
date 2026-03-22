@@ -151,7 +151,7 @@ def _format_visitor_section(user_claims: Optional[dict] = None) -> str:
     return f"## Visitor\nYou are chatting with:\n{visitor_details}"
 
 
-def _get_tools_section(context: str, trading_user_id: Optional[str]) -> str:
+def _get_tools_section(context: str, trading_user_id: Optional[str], user_claims: Optional[dict] = None) -> str:
     """Build the Tools Available section based on context and user credentials."""
     if context == "conversation":
         # Conversation context — email only as last resort
@@ -161,14 +161,13 @@ def _get_tools_section(context: str, trading_user_id: Optional[str]) -> str:
         tools_content = _get_trading_tools_section(trading_user_id) + _get_email_tools_section_trading()
     else:
         # Fallback: trading context without auth or other cases
-        pass
+        tools_content = _get_email_tools_section_trading()
     
     return f"""## Tools Available to You
 
-      You have access to several tools that you MUST use when relevant:
+You have access to several tools that you MUST use when relevant:
 
-      {tools_content}
-    """
+{tools_content}"""
 
 
 def prompt(context: str = "conversation", trading_user_id: Optional[str] = None, user_claims: Optional[dict] = None) -> str:
@@ -183,7 +182,7 @@ def prompt(context: str = "conversation", trading_user_id: Optional[str] = None,
         The full system prompt string with context-appropriate tools.
     """
     visitor_section = _format_visitor_section(user_claims)
-    tools_section = _get_tools_section(context, trading_user_id)
+    tools_section = _get_tools_section(context, trading_user_id, user_claims)
     
     return f"""
       # Your Role
@@ -214,4 +213,20 @@ def prompt(context: str = "conversation", trading_user_id: Optional[str] = None,
       {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
       {tools_section}
+
+      ## Quick Follow-Up Suggestions (Optional)
+      After your response, you may optionally suggest 2–3 short follow-up questions or actions for the visitor to explore next. Only do this when suggestions would be genuinely useful and specific to what was just discussed — not after every message.
+
+      If you include suggestions, place them at the very end of your response using this exact format and nothing after it:
+
+      [QUICK_OPTIONS]
+      First suggestion here
+      Second suggestion here
+      [/QUICK_OPTIONS]
+
+      Guidelines:
+      - Keep each suggestion under 70 characters.
+      - Only suggest things that naturally follow from what was just discussed.
+      - Do NOT include this block if the conversation ends naturally (e.g., a goodbye), or if no clear follow-ups exist.
+      - When included: minimum 2, maximum 3 suggestions.
     """

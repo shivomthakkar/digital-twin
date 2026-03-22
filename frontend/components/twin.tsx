@@ -5,11 +5,13 @@ import { Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { authFetch } from '../lib/api';
+import BubblingLoader from './BubblingLoader';
 
 interface Message {
     id: string;
     role: 'user' | 'assistant';
     content: string;
+    options?: string[];
 }
 
 export default function Twin() {
@@ -17,7 +19,6 @@ export default function Twin() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [sessionId, setSessionId] = useState<string>('');
-    const [loadingDots, setLoadingDots] = useState('');
     const loadingMsgId = 'loading-bubble';
     const messagesEndRef = useRef<HTMLDivElement>(null);
     // Scroll to bottom when messages change
@@ -27,27 +28,14 @@ export default function Twin() {
         }
     }, [messages]);
 
-    // Animate loading dots
-    useEffect(() => {
-        if (!isLoading) {
-            setLoadingDots('');
-            return;
-        }
-        let i = 0;
-        const interval = setInterval(() => {
-            setLoadingDots('.'.repeat((i % 3) + 1));
-            i++;
-        }, 400);
-        return () => clearInterval(interval);
-    }, [isLoading]);
-
-    const sendMessage = async () => {
-        if (!input.trim() || isLoading) return;
+    const sendMessage = async (messageText?: string) => {
+        const text = (messageText ?? input).trim();
+        if (!text || isLoading) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
-            content: input,
+            content: text,
         };
 
         setMessages(prev => [...prev, userMessage, {
@@ -55,7 +43,7 @@ export default function Twin() {
             role: 'assistant',
             content: '', // Will show animated dots
         }]);
-        setInput('');
+        if (!messageText) setInput('');
         setIsLoading(true);
 
         try {
@@ -65,7 +53,7 @@ export default function Twin() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: input,
+                    message: text,
                     session_id: sessionId || undefined,
                 }),
             });
@@ -77,6 +65,7 @@ export default function Twin() {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
                 content: data.response,
+                options: data.options ?? undefined,
             };
             setMessages(prev => [
                 ...prev.filter(m => m.id !== loadingMsgId),
@@ -121,15 +110,31 @@ export default function Twin() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div key={msg.id} className={`w-full px-1 text-[#b0b8c1] ${msg.id === loadingMsgId ? 'animate-pulse' : ''}`}>
+                                    <div key={msg.id} className="w-full px-1 text-[#b0b8c1]">
                                         {msg.id === loadingMsgId ? (
-                                            <span className="inline-block min-w-[24px]">{loadingDots || '.'}</span>
+                                            <BubblingLoader />
                                         ) : (
+                                            <>
                                             <div className="prose prose-invert prose-base max-w-none">
                                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {msg.content}
                                                 </ReactMarkdown>
                                             </div>
+                                            {msg.options && msg.options.length > 0 && (
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    {msg.options.map((option, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => sendMessage(option)}
+                                                            disabled={isLoading}
+                                                            className="text-sm px-3 py-1.5 rounded-full border border-[#3a4a5f] text-[#8899aa] hover:text-white hover:border-[#4a6a8f] hover:bg-[#243244] transition-colors disabled:opacity-50 text-left"
+                                                        >
+                                                            {option}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            </>
                                         )}
                                     </div>
                                 )

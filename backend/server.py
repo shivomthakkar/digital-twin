@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 import json
 import uuid
+import re
 from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError
@@ -336,6 +337,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     session_id: str
+    options: Optional[List[str]] = None
 
 
 class Message(BaseModel):
@@ -417,6 +419,19 @@ def _extract_user_claims(request: Request) -> Optional[Dict]:
     return claims
 
 
+def _extract_quick_options(text: str) -> Tuple[str, Optional[List[str]]]:
+    """Extract [QUICK_OPTIONS]…[/QUICK_OPTIONS] from text.
+
+    Returns (clean_text, options_list_or_None).
+    """
+    match = re.search(r'\[QUICK_OPTIONS\](.*?)\[/QUICK_OPTIONS\]', text, re.DOTALL)
+    if not match:
+        return text.strip(), None
+    options = [line.strip() for line in match.group(1).splitlines() if line.strip()]
+    clean_text = re.sub(r'\[QUICK_OPTIONS\].*?\[/QUICK_OPTIONS\]', '', text, flags=re.DOTALL).strip()
+    return clean_text, options if options else None
+
+
 def call_bedrock_with_tools(
     conversation: List[Dict],
     user_message: str,
@@ -424,7 +439,7 @@ def call_bedrock_with_tools(
     trading_user_id: Optional[str] = None,
     context: str = "conversation",
     user_claims: Optional[Dict] = None,
-) -> str:
+) -> Tuple[str, Optional[List[str]]]:
     """Agentic Bedrock loop with tool use support.
     
     Args:
@@ -472,11 +487,12 @@ def call_bedrock_with_tools(
         assistant_message = response["output"]["message"]
 
         if stop_reason == "end_turn":
-            return " ".join(
+            raw = " ".join(
                 block["text"]
                 for block in assistant_message["content"]
                 if "text" in block
             )
+            return _extract_quick_options(raw)
 
         if stop_reason == "tool_use":
             messages.append(assistant_message)
@@ -521,9 +537,9 @@ def call_bedrock_with_tools(
         if msg.get("role") == "assistant":
             text_blocks = [b["text"] for b in msg.get("content", []) if "text" in b]
             if text_blocks:
-                return " ".join(text_blocks)
+                return _extract_quick_options(" ".join(text_blocks))
 
-    return "I encountered an unexpected issue processing your request."
+    return "I encountered an unexpected issue processing your request.", None
 
 
 # ---------------------------------------------------------------------------
@@ -739,7 +755,7 @@ async def chat(chat_request: ChatRequest, request: Request):
         
         # Build context-specific tool config and call Bedrock
         tool_config = _build_tool_config(chat_request.context, trading_user_id)
-        assistant_response = call_bedrock_with_tools(
+        assistant_response, quick_options = call_bedrock_with_tools(
             conversation, chat_request.message, tool_config, trading_user_id, chat_request.context, user_claims
         )
 
@@ -758,7 +774,7 @@ async def chat(chat_request: ChatRequest, request: Request):
         # Save conversation
         save_conversation(session_id, conversation)
 
-        return ChatResponse(response=assistant_response, session_id=session_id)
+        return ChatResponse(response=assistant_response, session_id=session_id, options=quick_options)
 
     except HTTPException:
         raise

@@ -5,13 +5,14 @@ import { ChevronDown, Send, X } from 'lucide-react';
 import BubblingLoader from './BubblingLoader';
 
 export interface ChatWindowRef {
-  addMessage: (message: string) => void;
+  addMessage: (message: string, options?: string[]) => void;
   addLoadingMessage: () => void;
 }
 
 interface Message {
   id: string;
   text: string;
+  options?: string[];
   sender: 'user' | 'system' | 'loading';
   timestamp: number;
 }
@@ -42,12 +43,13 @@ const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(({ onSendMessage, 
   }, [messages]);
 
   useImperativeHandle(ref, () => ({
-    addMessage: (text: string) => {
+    addMessage: (text: string, options?: string[]) => {
       setMessages((prev) => [
         ...prev.filter((msg) => msg.sender !== 'loading'),
         {
           id: `${Date.now()}-${Math.random()}`,
           text,
+          options,
           sender: 'system',
           timestamp: Date.now(),
         },
@@ -66,11 +68,10 @@ const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(({ onSendMessage, 
     },
   }));
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    const userMessage = inputValue.trim();
-    setInputValue('');
+  const handleSendMessage = async (overrideText?: string) => {
+    const userMessage = (overrideText !== undefined ? overrideText : inputValue).trim();
+    if (!userMessage) return;
+    if (overrideText === undefined) setInputValue('');
 
     // Add user message immediately
     setMessages((prev) => [
@@ -162,14 +163,30 @@ const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(({ onSendMessage, 
                         <BubblingLoader />
                       </div>
                     ) : (
-                      <div
-                        className={`px-3 py-2 rounded-lg max-w-xs break-words ${
-                          message.sender === 'user'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-700 text-gray-100'
-                        }`}
-                      >
-                        {message.text}
+                      <div className={`flex flex-col ${message.sender === 'user' ? 'items-end' : 'items-start'} max-w-xs`}>
+                        <div
+                          className={`px-3 py-2 rounded-lg break-words ${
+                            message.sender === 'user'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-gray-700 text-gray-100'
+                          }`}
+                        >
+                          {message.text}
+                        </div>
+                        {message.sender === 'system' && message.options && message.options.length > 0 && (
+                          <div className="mt-2 flex flex-col gap-1 w-full">
+                            {message.options.map((option, i) => (
+                              <button
+                                key={i}
+                                onClick={() => handleSendMessage(option)}
+                                disabled={isSending}
+                                className="text-left text-xs px-2 py-1.5 rounded border border-indigo-500/50 text-indigo-300 hover:bg-indigo-900/40 hover:border-indigo-400 transition-colors disabled:opacity-50"
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -191,7 +208,7 @@ const ChatWindow = forwardRef<ChatWindowRef, ChatWindowProps>(({ onSendMessage, 
               className="flex-1 bg-gray-700 text-white rounded px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-600 border border-gray-600 disabled:opacity-50"
             />
             <button
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               disabled={isSending || !inputValue.trim()}
               className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded px-3 py-2 flex items-center justify-center transition-colors"
             >
