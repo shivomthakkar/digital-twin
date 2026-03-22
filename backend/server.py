@@ -420,10 +420,13 @@ def _extract_user_claims(request: Request) -> Optional[Dict]:
 
 
 def _extract_quick_options(text: str) -> Tuple[str, Optional[List[str]]]:
-    """Extract [QUICK_OPTIONS]…[/QUICK_OPTIONS] from text.
+    """Strip <thinking> blocks and [QUICK_OPTIONS] markers from LLM output.
 
     Returns (clean_text, options_list_or_None).
     """
+    # Remove <thinking>…</thinking> blocks (extended reasoning / scratchpad)
+    text = re.sub(r'<thinking>.*?</thinking>', '', text, flags=re.DOTALL).strip()
+
     match = re.search(r'\[QUICK_OPTIONS\](.*?)\[/QUICK_OPTIONS\]', text, re.DOTALL)
     if not match:
         return text.strip(), None
