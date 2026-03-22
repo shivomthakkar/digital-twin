@@ -83,3 +83,18 @@ variable "cognito_region" {
   type        = string
   default     = "us-east-1"
 }
+
+# ===========================================================================
+# AGENTIC TOOL VARIABLES
+# ===========================================================================
+
+variable "ses_sender_email" {
+  description = "Verified SES sender address for outbound notifications (e.g. messaging@yourdomain.com)."
+  type        = string
+}
+
+variable "notification_email" {
+  description = "Recipient email address for owner notifications."
+  type        = string
+  default     = "shivomthakkar15@gmail.com"
+}

@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.59",
     "fastapi>=0.135.0",
+    "httpx>=0.28.1",
     "mangum>=0.21.0",
     "pypdf>=6.7.4",
     "python-dotenv>=1.2.1",

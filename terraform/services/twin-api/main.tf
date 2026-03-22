@@ -11,6 +11,16 @@ data "terraform_remote_state" "foundation" {
   }
 }
 
+# Read trading-api outputs so the twin Lambda can invoke it directly.
+data "terraform_remote_state" "trading" {
+  backend = "s3"
+  config = {
+    bucket = "twin-terraform-state-${data.aws_caller_identity.current.account_id}"
+    key    = "services/trading-api/${var.environment}/terraform.tfstate"
+    region = "ap-south-1"
+  }
+}
+
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
 
@@ -91,6 +101,30 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
   role       = aws_iam_role.lambda_role.name
 }
 
+# Inline policy — grants permission to invoke the trading Lambda and send SES emails.
+resource "aws_iam_role_policy" "lambda_tools" {
+  name = "${local.name_prefix}-twin-api-tools"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "InvokeTrading"
+        Effect = "Allow"
+        Action = ["lambda:InvokeFunction"]
+        Resource = data.terraform_remote_state.trading.outputs.lambda_function_arn
+      },
+      {
+        Sid    = "SendSESEmail"
+        Effect = "Allow"
+        Action = ["ses:SendEmail", "ses:SendRawEmail"]
+        Resource = "arn:aws:ses:*:${data.aws_caller_identity.current.account_id}:identity/${var.ses_sender_email}"
+      },
+    ]
+  })
+}
+
 # ---------------------------------------------------------------------------
 # Lambda package — uploaded to S3 to avoid the 70 MB direct-upload limit
 # ---------------------------------------------------------------------------
@@ -120,11 +154,14 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      CORS_ORIGINS         = data.terraform_remote_state.foundation.outputs.cors_origins
-      S3_BUCKET            = aws_s3_bucket.memory.id
-      USE_S3               = "true"
-      BEDROCK_MODEL_ID     = var.bedrock_model_id
-      ORIGIN_VERIFY_SECRET = random_password.origin_secret.result
+      CORS_ORIGINS                  = data.terraform_remote_state.foundation.outputs.cors_origins
+      S3_BUCKET                     = aws_s3_bucket.memory.id
+      USE_S3                        = "true"
+      BEDROCK_MODEL_ID              = var.bedrock_model_id
+      ORIGIN_VERIFY_SECRET          = random_password.origin_secret.result
+      TRADING_LAMBDA_FUNCTION_NAME  = data.terraform_remote_state.trading.outputs.lambda_function_name
+      SES_SENDER_EMAIL              = var.ses_sender_email
+      NOTIFICATION_EMAIL            = var.notification_email
     }
   }
 }
