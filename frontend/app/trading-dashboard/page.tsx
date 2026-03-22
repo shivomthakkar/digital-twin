@@ -4,7 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import TradingMetrics from '../../components/TradingMetrics';
 import TradingList from '../../components/TradingList';
 import LoginModal from '../../components/LoginModal';
+import HealthStatus from '../../components/HealthStatus';
 import { formatter } from '../../lib/utils';
+import { authFetch } from '../../lib/api';
 import { 
   getHoldings, 
   getPositions, 
@@ -33,6 +35,8 @@ export default function TradingPage() {
   const [error, setError] = useState<string | null>(null);
   const [stocks, setStocks] = useState<WatchlistStock[]>([]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [healthMode, setHealthMode] = useState<string | null>(null);
+  const [healthBaseUrl, setHealthBaseUrl] = useState<string | null>(null);
   const chatWindowRef = useRef<ChatWindowRef>(null);
 
   const handleChatMessage = async (history: ChatMessage[]) => {
@@ -61,6 +65,29 @@ export default function TradingPage() {
   //   await deleteFromWatchlist(symbol);
   //   await fetchWatchlist();
   // }
+
+  async function checkHealth() {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_TRADING_API_URL || 'http://localhost:8000';
+      const response = await authFetch(`${API_BASE_URL}/health`);
+      if (response.ok) {
+        const data = await response.json();
+        setHealthMode(data.mode);
+        setHealthBaseUrl(data.base_url);
+      } else if (response.status === 401) {
+        setHealthMode(null);
+        setHealthBaseUrl(null);
+      }
+    } catch (err) {
+      console.error('Error checking health:', err);
+      setHealthMode(null);
+      setHealthBaseUrl(null);
+    }
+  }
+
+  useEffect(() => {
+    checkHealth();
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -105,14 +132,18 @@ export default function TradingPage() {
           <div style={{clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)'}} className="relative left-1/2 -z-10 aspect-[1155/678] w-[144.5rem] max-w-none -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-40rem)] sm:w-[288.75rem]" />
         </div>
         <div>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between gap-4 mb-6">
             <h1 className="text-3xl font-bold text-white">Trading Dashboard</h1>
-            <button
-              onClick={() => setIsLoginOpen(true)}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-            >
-              Login
-            </button>
+            {healthMode && healthBaseUrl ? (
+              <HealthStatus mode={healthMode} baseUrl={healthBaseUrl} />
+            ) : (
+              <button
+                onClick={() => setIsLoginOpen(true)}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Login
+              </button>
+            )}
           </div>
           
           {error && (
@@ -211,7 +242,10 @@ export default function TradingPage() {
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onSuccess={() => { setIsLoginOpen(false); }}
+        onSuccess={() => {
+          setIsLoginOpen(false);
+          checkHealth();
+        }}
       />
 
       <ChatWindow
