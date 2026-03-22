@@ -35,6 +35,7 @@ export default function TradingPage() {
   const [error, setError] = useState<string | null>(null);
   const [stocks, setStocks] = useState<WatchlistStock[]>([]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [healthChecked, setHealthChecked] = useState(false);
   const [healthMode, setHealthMode] = useState<string | null>(null);
   const [healthBaseUrl, setHealthBaseUrl] = useState<string | null>(null);
   const chatWindowRef = useRef<ChatWindowRef>(null);
@@ -66,7 +67,7 @@ export default function TradingPage() {
   //   await fetchWatchlist();
   // }
 
-  async function checkHealth() {
+  async function checkHealth(): Promise<boolean> {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_TRADING_API_URL || 'http://localhost:8000';
       const response = await authFetch(`${API_BASE_URL}/health`);
@@ -74,54 +75,63 @@ export default function TradingPage() {
         const data = await response.json();
         setHealthMode(data.mode);
         setHealthBaseUrl(data.base_url);
-      } else if (response.status === 401) {
+        return true;
+      } else {
         setHealthMode(null);
         setHealthBaseUrl(null);
+        return false;
       }
     } catch (err) {
       console.error('Error checking health:', err);
       setHealthMode(null);
       setHealthBaseUrl(null);
+      return false;
+    }
+  }
+
+  async function fetchData() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all data in parallel
+      const [holdingsData, positionsData, fundsData, pnlData] = await Promise.all([
+        getHoldings(),
+        getPositions(),
+        getFunds(),
+        getPNL('week'),
+      ]);
+
+      setHoldings(holdingsData);
+      setPositions(positionsData);
+      setFunds(fundsData);
+      setPNL(pnlData);
+
+      // Generate metrics from fetched data
+      const metricsData = await getTradingMetrics(fundsData, pnlData, holdingsData);
+      setMetrics(metricsData);
+
+      // await fetchWatchlist();
+    } catch (err) {
+      console.error('Error fetching trading data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load trading data');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function initialize() {
+    const isAuthenticated = await checkHealth();
+    setHealthChecked(true);
+    if (isAuthenticated) {
+      await fetchData();
+    } else {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    checkHealth();
-  }, []);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch all data in parallel
-        const [holdingsData, positionsData, fundsData, pnlData] = await Promise.all([
-          getHoldings(),
-          getPositions(),
-          getFunds(),
-          getPNL('week'),
-        ]);
-
-        setHoldings(holdingsData);
-        setPositions(positionsData);
-        setFunds(fundsData);
-        setPNL(pnlData);
-
-        // Generate metrics from fetched data
-        const metricsData = await getTradingMetrics(fundsData, pnlData, holdingsData);
-        setMetrics(metricsData);
-
-        // await fetchWatchlist();
-      } catch (err) {
-        console.error('Error fetching trading data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load trading data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
+    initialize();
   }, []);
 
 
@@ -134,7 +144,9 @@ export default function TradingPage() {
         <div>
           <div className="flex items-center justify-between gap-4 mb-6">
             <h1 className="text-3xl font-bold text-white">Trading Dashboard</h1>
-            {healthMode && healthBaseUrl ? (
+            {!healthChecked ? (
+              <div className="h-8 w-24 animate-pulse rounded-lg bg-gray-700" />
+            ) : healthMode && healthBaseUrl ? (
               <HealthStatus mode={healthMode} baseUrl={healthBaseUrl} />
             ) : (
               <button
@@ -153,8 +165,19 @@ export default function TradingPage() {
           )}
 
           {loading ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 space-y-3">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
               <p className="text-gray-300">Loading trading data...</p>
+            </div>
+          ) : !healthMode ? (
+            <div className="text-center py-20">
+              <p className="text-gray-400 text-lg mb-4">Please log in to view your trading data.</p>
+              <button
+                onClick={() => setIsLoginOpen(true)}
+                className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Log in
+              </button>
             </div>
           ) : (
             <>
@@ -244,7 +267,7 @@ export default function TradingPage() {
         onClose={() => setIsLoginOpen(false)}
         onSuccess={() => {
           setIsLoginOpen(false);
-          checkHealth();
+          initialize();
         }}
       />
 
