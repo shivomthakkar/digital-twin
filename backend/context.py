@@ -151,7 +151,7 @@ def _format_visitor_section(user_claims: Optional[dict] = None) -> str:
     return f"## Visitor\nYou are chatting with:\n{visitor_details}"
 
 
-def _get_tools_section(context: str, trading_user_id: Optional[str], user_claims: Optional[dict] = None) -> str:
+def _get_tools_section(context: str, trading_user_id: Optional[str]) -> str:
     """Build the Tools Available section based on context and user credentials."""
     if context == "conversation":
         # Conversation context — email only as last resort
@@ -182,7 +182,7 @@ def prompt(context: str = "conversation", trading_user_id: Optional[str] = None,
         The full system prompt string with context-appropriate tools.
     """
     visitor_section = _format_visitor_section(user_claims)
-    tools_section = _get_tools_section(context, trading_user_id, user_claims)
+    tools_section = _get_tools_section(context, trading_user_id)
     
     return f"""
       # Your Role
@@ -215,7 +215,7 @@ def prompt(context: str = "conversation", trading_user_id: Optional[str] = None,
       {tools_section}
 
       ## Quick Follow-Up Suggestions (Optional)
-      After your response, you may optionally suggest 2–3 short follow-up questions or actions for the visitor to explore next. Only do this when suggestions would be genuinely useful and specific to what was just discussed — not after every message.
+      After your response, you may optionally suggest 2-3 short follow-up questions or actions for the visitor to explore next. Only do this when suggestions would be genuinely useful, relevant and specific to what was just discussed — not after every message.
 
       If you include suggestions, place them at the very end of your response using this exact format and nothing after it:
 
@@ -226,7 +226,7 @@ def prompt(context: str = "conversation", trading_user_id: Optional[str] = None,
 
       Guidelines:
       - Keep each suggestion under 70 characters.
-      - Only suggest things that naturally follow from what was just discussed.
+      - Only suggest things that are naturally relevant to {full_name} and the current conversation.
       - Do NOT include this block if the conversation ends naturally (e.g., a goodbye), or if no clear follow-ups exist.
       - When included: minimum 2, maximum 3 suggestions.
     """

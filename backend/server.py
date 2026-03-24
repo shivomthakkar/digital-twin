@@ -420,19 +420,29 @@ def _extract_user_claims(request: Request) -> Optional[Dict]:
 
 
 def _extract_quick_options(text: str) -> Tuple[str, Optional[List[str]]]:
-    """Strip <thinking> blocks and [QUICK_OPTIONS] markers from LLM output.
+    """Extract [QUICK_OPTIONS] suggestions then strip known scratchpad tags from LLM output.
 
     Returns (clean_text, options_list_or_None).
     """
-    # Remove <thinking>…</thinking> blocks (extended reasoning / scratchpad)
-    text = re.sub(r'<thinking>.*?</thinking>', '', text, flags=re.DOTALL).strip()
-
+    # 1. Extract QUICK_OPTIONS first, before any tag stripping that could remove them
+    options: Optional[List[str]] = None
     match = re.search(r'\[QUICK_OPTIONS\](.*?)\[/QUICK_OPTIONS\]', text, re.DOTALL)
-    if not match:
-        return text.strip(), None
-    options = [line.strip() for line in match.group(1).splitlines() if line.strip()]
-    clean_text = re.sub(r'\[QUICK_OPTIONS\].*?\[/QUICK_OPTIONS\]', '', text, flags=re.DOTALL).strip()
-    return clean_text, options if options else None
+    if match:
+        options = [line.strip() for line in match.group(1).splitlines() if line.strip()] or None
+        text = re.sub(r'\[QUICK_OPTIONS\].*?\[/QUICK_OPTIONS\]', '', text, flags=re.DOTALL)
+
+    # 2. Remove known scratchpad/reasoning tags AND their contents
+    _SCRATCHPAD_TAGS = ['thinking', 'scratchpad', 'reasoning', 'internal']
+    for tag in _SCRATCHPAD_TAGS:
+        text = re.sub(rf'<{tag}>.*?</{tag}>', '', text, flags=re.DOTALL | re.IGNORECASE)
+
+    # 3. Strip wrapper tags only (keep their inner content)
+    _WRAPPER_TAGS = ['response', 'answer', 'output', 'result']
+    for tag in _WRAPPER_TAGS:
+        text = re.sub(rf'<{tag}[^>]*>', '', text, flags=re.IGNORECASE)
+        text = re.sub(rf'</{tag}>', '', text, flags=re.IGNORECASE)
+
+    return text.strip(), options
 
 
 def call_bedrock_with_tools(
