@@ -674,7 +674,7 @@ def _send_ses_email(subject: str, body_text: str) -> Dict:
 
     try:
         ses_client.send_email(
-            Source=f"Shivom's Twin <{SES_SENDER_EMAIL}>",
+            Source=f"Shivom's Twin <messaging@{SES_SENDER_EMAIL}>",
             Destination={"ToAddresses": [NOTIFICATION_EMAIL]},
             Message={
                 "Subject": {"Data": subject, "Charset": "UTF-8"},

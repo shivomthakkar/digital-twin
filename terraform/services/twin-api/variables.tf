@@ -84,17 +84,22 @@ variable "cognito_region" {
   default     = "us-east-1"
 }
 
+variable "ses_region" {
+  description = "AWS region where SES identities are verified."
+  type        = string
+}
+
 # ===========================================================================
 # AGENTIC TOOL VARIABLES
 # ===========================================================================
 
+
 variable "ses_sender_email" {
-  description = "Verified SES sender address for outbound notifications (e.g. messaging@yourdomain.com)."
+  description = "Verified SES sender address for outbound notifications (e.g. yourdomain.com)."
   type        = string
 }
 
 variable "notification_email" {
   description = "Recipient email address for owner notifications."
   type        = string
-  default     = "shivomthakkar15@gmail.com"
 }

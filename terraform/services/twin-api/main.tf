@@ -119,7 +119,10 @@ resource "aws_iam_role_policy" "lambda_tools" {
         Sid    = "SendSESEmail"
         Effect = "Allow"
         Action = ["ses:SendEmail", "ses:SendRawEmail"]
-        Resource = "arn:aws:ses:*:${data.aws_caller_identity.current.account_id}:identity/${var.ses_sender_email}"
+        Resource = [
+          "arn:aws:ses:*:${data.aws_caller_identity.current.account_id}:identity/${var.ses_sender_email}",
+          "arn:aws:ses:*:${data.aws_caller_identity.current.account_id}:identity/${var.notification_email}",
+        ]
       },
     ]
   })
@@ -162,6 +165,7 @@ resource "aws_lambda_function" "api" {
       TRADING_LAMBDA_FUNCTION_NAME  = data.terraform_remote_state.trading.outputs.lambda_function_name
       SES_SENDER_EMAIL              = var.ses_sender_email
       NOTIFICATION_EMAIL            = var.notification_email
+      SES_REGION                    = var.ses_region
     }
   }
 }
