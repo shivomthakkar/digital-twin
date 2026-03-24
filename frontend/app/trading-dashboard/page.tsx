@@ -24,6 +24,7 @@ import {
   type WatchlistStock,
 } from '../../lib/trading';
 import ChatWindow, { ChatWindowRef, ChatMessage } from '@/components/ChatWindow';
+import StockGrid from '../../components/StockGrid';
 
 export default function TradingPage() {
   const [metrics, setMetrics] = useState<TradingMetric[]>([]);
@@ -181,6 +182,8 @@ export default function TradingPage() {
             </div>
           ) : (
             <>
+              <StockGrid holdings={holdings} />
+
               <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <TradingMetrics metrics={metrics} />
               </div>

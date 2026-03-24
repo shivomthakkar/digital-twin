@@ -6,11 +6,14 @@ import { amplifyConfig } from '../amplifyConfig';
 import { signInWithRedirect } from '@aws-amplify/auth';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import LockOutlineIcon from '@mui/icons-material/LockOutline';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import { usePathname, useRouter } from 'next/navigation';
 
 import "./globals.css";
 import React from "react";
-import Head from "next/head";
 import Link from "next/link";
 
 // Initialize Amplify once
@@ -64,11 +67,15 @@ export default function RootLayout({
   }, []);
 
   // Navigation tabs config
-  const tabs: Array<{ name: string; url: string; visibility?: UserMode; options?: Array<{ name: string; url: string; description: string; icon: React.ReactNode }> }> = [
+  const tabs: Array<{ name: string; url: string; visibility?: UserMode; options?: Array<{ name: string; url: string; description: string; icon: React.ReactNode; external?: boolean }> }> = [
     { name: "Home", url: "/" },
     { name: "Blogs", url: "/blogs" },
     // { name: "Certifications", url: "/certifications" },
-    { name: "Contact", url: "/contact" },
+    { name: "Contact", url: "/contact", options: [
+      { name: "LinkedIn", url: "https://www.linkedin.com/in/shivomthakkar", description: "Connect with me professionally", icon: <LinkedInIcon style={{ fontSize: '1.25rem' }} className="text-blue-400" />, external: true },
+      { name: "GitHub", url: "https://github.com/shivomthakkar", description: "See my open source work", icon: <GitHubIcon style={{ fontSize: '1.25rem' }} className="text-gray-300" />, external: true },
+      // { name: "Send a Message", url: "contact", description: "Get in touch directly", icon: <MailOutlineIcon style={{ fontSize: '1.25rem' }} className="text-cyan-400" /> },
+    ] },
     { name: "Chat", url: "/talk", visibility: 'user' },
     { name: "Trading", url: "/trading-dashboard", visibility: 'admin_user' },
   ];
@@ -101,11 +108,15 @@ export default function RootLayout({
 
   return (
       <html lang="en" className={`antialiased bg-slate-50 dark:bg-slate-900 dark:text-white`}>
-        <Head>
-          <link className="rounded-md" rel="icon" type="image/png" href="/favicon.ico" />
-        </Head>
+        <head>
+          <link rel="icon" type="image/png" href="/favicon.ico" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Mono&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+        </head>
       <body className={`antialiased bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900 dark:to-gray-950 dark:text-white`}>
-        <header className="bg-gray-900">
+        <header className="bg-gray-900 relative z-50">
           <nav aria-label="Global" className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
             <div className="flex md:flex-1 items-center">
               <Link href="/" className="-m-1.5 p-1.5">
@@ -143,7 +154,12 @@ export default function RootLayout({
                   return null;
                 }
                 return (
-                <div key={tab.name} className="relative">
+                <div
+                  key={tab.name}
+                  className="relative"
+                  onMouseEnter={() => tab.options && setPopoverIndex(idx)}
+                  onMouseLeave={() => tab.options && setPopoverIndex(null)}
+                >
                   {tab.visibility === MODE_HIERARCHY[1] && loadingUser ? (
                     <div className="animate-pulse h-4 w-10 rounded bg-gray-700" />
                   ) : tab.options ? (
@@ -152,9 +168,7 @@ export default function RootLayout({
                         className="flex items-center gap-x-1 text-sm font-semibold text-white cursor-pointer transition-transform duration-150 hover:scale-105"
                         aria-haspopup="true"
                         aria-expanded={popoverIndex === idx}
-                        onMouseEnter={() => setPopoverIndex(idx)}
                         onFocus={() => setPopoverIndex(idx)}
-                        onMouseLeave={() => setPopoverIndex(null)}
                         onBlur={() => setPopoverIndex(null)}
                       >
                         {tab.name}
@@ -163,22 +177,45 @@ export default function RootLayout({
                         </svg>
                       </button>
                       {popoverIndex === idx && (
-                        <div
-                          className="absolute left-0 top-full z-10 mt-2 w-max min-w-[16rem] min-h-32 rounded-3xl bg-gray-800 shadow-lg outline outline-1 outline-white/10 transition duration-200"
-                          onMouseEnter={() => setPopoverIndex(idx)}
-                          onMouseLeave={() => setPopoverIndex(null)}
-                        >
+                        <div className="absolute left-0 top-full z-50 w-max min-w-[16rem] min-h-32 rounded-3xl bg-gray-800 shadow-lg outline outline-1 outline-white/10">
+                          {/* Invisible bridge fills the gap between button and panel */}
+                          <div className="absolute -top-2 left-0 right-0 h-2" />
                           <div className="p-4">
                             {tab.options.map((opt) => (
-                              <div key={opt.name} className="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm hover:bg-white/5 cursor-pointer">
-                                <div className="flex size-11 flex-none items-center justify-center rounded-lg bg-gray-700/50 group-hover:bg-gray-700">
-                                  {opt.icon}
-                                </div>
-                                <div className="flex-auto">
-                                  <Link href={opt.url ? `/${opt.url}` : "/"} className="block font-semibold text-white">{opt.name}</Link>
-                                  <p className="mt-1 text-gray-400">{opt.description}</p>
-                                </div>
-                              </div>
+                              opt.external ? (
+                                <a
+                                  key={opt.name}
+                                  href={opt.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group flex items-center gap-x-6 rounded-lg p-4 text-sm hover:bg-white/5"
+                                >
+                                  <div className="flex size-11 flex-none items-center justify-center rounded-lg bg-gray-700/50 group-hover:bg-gray-700">
+                                    {opt.icon}
+                                  </div>
+                                  <div className="flex-auto">
+                                    <div className="inline-flex items-center gap-1 font-semibold text-white">
+                                      {opt.name}
+                                      <OpenInNewIcon style={{ fontSize: '0.75rem' }} className="text-gray-400" />
+                                    </div>
+                                    <p className="mt-1 text-gray-400">{opt.description}</p>
+                                  </div>
+                                </a>
+                              ) : (
+                                <Link
+                                  key={opt.name}
+                                  href={opt.url ? `/${opt.url}` : "/"}
+                                  className="group flex items-center gap-x-6 rounded-lg p-4 text-sm hover:bg-white/5"
+                                >
+                                  <div className="flex size-11 flex-none items-center justify-center rounded-lg bg-gray-700/50 group-hover:bg-gray-700">
+                                    {opt.icon}
+                                  </div>
+                                  <div className="flex-auto">
+                                    <div className="font-semibold text-white">{opt.name}</div>
+                                    <p className="mt-1 text-gray-400">{opt.description}</p>
+                                  </div>
+                                </Link>
+                              )
                             ))}
                           </div>
                         </div>
@@ -256,14 +293,44 @@ export default function RootLayout({
                       return loadingUser ? (
                         <div key={tab.name} className="animate-pulse h-8 w-3/4 rounded-lg bg-gray-700 mx-3" />
                       ) : accessible ? (
-                        <Link
-                          key={tab.name}
-                          href={tab.url ? `${tab.url}` : "/"}
-                          className="block rounded-lg px-3 py-2 text-lg font-semibold text-white hover:bg-white/5"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {tab.name}
-                        </Link>
+                        tab.options ? (
+                          <div key={tab.name}>
+                            <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">{tab.name}</div>
+                            {tab.options.map((opt) =>
+                              opt.external ? (
+                                <a
+                                  key={opt.name}
+                                  href={opt.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-lg font-semibold text-white hover:bg-white/5"
+                                  onClick={() => setMobileMenuOpen(false)}
+                                >
+                                  {opt.name}
+                                  <OpenInNewIcon style={{ fontSize: '1rem' }} className="text-gray-400" />
+                                </a>
+                              ) : (
+                                <Link
+                                  key={opt.name}
+                                  href={opt.url ? `/${opt.url}` : "/"}
+                                  className="block rounded-lg px-3 py-2 text-lg font-semibold text-white hover:bg-white/5"
+                                  onClick={() => setMobileMenuOpen(false)}
+                                >
+                                  {opt.name}
+                                </Link>
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <Link
+                            key={tab.name}
+                            href={tab.url ? `${tab.url}` : "/"}
+                            className="block rounded-lg px-3 py-2 text-lg font-semibold text-white hover:bg-white/5"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {tab.name}
+                          </Link>
+                        )
                       ) : (
                         <span
                           key={tab.name}
