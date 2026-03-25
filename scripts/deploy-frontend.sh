@@ -7,6 +7,15 @@
 # Usage:
 #   scripts/deploy-frontend.sh dev
 #   scripts/deploy-frontend.sh prod
+#
+# Optional: Configure Cognito OAuth by passing environment variables:
+#   COGNITO_DOMAIN=<domain> \
+#   COGNITO_USER_POOL_ID=<pool_id> \
+#   COGNITO_APP_CLIENT_ID=<client_id> \
+#   COGNITO_REGION=<region> \
+#   scripts/deploy-frontend.sh prod
+#
+# If not provided, defaults to hardcoded values from terraform outputs.
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
@@ -110,6 +119,13 @@ ENV_FILE="$ROOT/frontend/.env.production"
   done
 
   echo ""
+  echo "# Cognito OAuth Configuration"
+  echo "NEXT_PUBLIC_COGNITO_DOMAIN=${COGNITO_DOMAIN:-us-east-1uhz7yreuq.auth.us-east-1.amazoncognito.com}"
+  echo "NEXT_PUBLIC_COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-us-east-1_uhz7yREuQ}"
+  echo "NEXT_PUBLIC_COGNITO_CLIENT_ID=${COGNITO_APP_CLIENT_ID:-2vn45ed6rbe1c9cg58b2vgpt5u}"
+  echo "NEXT_PUBLIC_COGNITO_REGION=${COGNITO_REGION:-us-east-1}"
+  echo ""
+  echo "# Cognito OAuth Redirect URLs"
   echo "NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_IN=${FRONTEND_URL}"
   echo "NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_OUT=${FRONTEND_URL}"
 } > "$ENV_FILE"

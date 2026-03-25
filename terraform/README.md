@@ -174,14 +174,37 @@ scripts/deploy-service.sh {service-name} dev
 ### Step 4: Deploy Frontend (Optional)
 
 ```bash
+# Deploy without Cognito (uses defaults from .env.local.example)
 scripts/deploy-frontend.sh dev
+
+# Deploy with Cognito configuration
+COGNITO_DOMAIN=<oauth_domain> \
+COGNITO_USER_POOL_ID=<pool_id> \
+COGNITO_APP_CLIENT_ID=<client_id> \
+COGNITO_REGION=<region> \
+scripts/deploy-frontend.sh prod
 ```
 
 **What happens:**
 - Reads all deployed service URLs from Terraform state
-- Builds Next.js frontend (sets `NEXT_PUBLIC_*` env vars for each service)
+- Injects Cognito OAuth configuration into `frontend/.env.production` (from env vars)
+- Builds Next.js frontend (sets `NEXT_PUBLIC_*` env vars for each service and Cognito)
 - Uploads static assets to S3
 - Invalidates CloudFront cache
+
+**Cognito Configuration:**
+
+The frontend reads Cognito configuration from environment variables:
+- `COGNITO_DOMAIN` → `NEXT_PUBLIC_COGNITO_DOMAIN`
+- `COGNITO_USER_POOL_ID` → `NEXT_PUBLIC_COGNITO_USER_POOL_ID`
+- `COGNITO_APP_CLIENT_ID` → `NEXT_PUBLIC_COGNITO_CLIENT_ID`
+- `COGNITO_REGION` → `NEXT_PUBLIC_COGNITO_REGION`
+
+If not provided, defaults to placeholder values (suitable for local development only).
+
+**Via CI/CD:**
+
+Set these as GitHub Secrets (`COGNITO_DOMAIN`, `COGNITO_USER_POOL_ID`, `COGNITO_APP_CLIENT_ID`, `COGNITO_REGION`), and GitHub Actions will automatically pass them to `deploy-frontend.sh`.
 
 ---
 
@@ -491,6 +514,30 @@ scripts/deploy-service.sh {service-name} {environment}
 | `COGNITO_USER_POOL_ID` | string | — | Cognito User Pool ID (required if `ENABLE_COGNITO_AUTH=true`) |
 | `COGNITO_APP_CLIENT_ID` | string | — | Cognito App Client ID (required if `ENABLE_COGNITO_AUTH=true`) |
 | `COGNITO_REGION` | string | `"us-east-1"` | AWS region for Cognito User Pool |
+
+### Environment Variables (deploy-frontend.sh)
+
+**Usage:** Export or inline before running `deploy-frontend.sh`
+
+```bash
+COGNITO_DOMAIN={oauth_domain} \
+COGNITO_USER_POOL_ID={user_pool_id} \
+COGNITO_APP_CLIENT_ID={app_client_id} \
+COGNITO_REGION={region} \
+scripts/deploy-frontend.sh prod
+```
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `COGNITO_DOMAIN` | string | `"us-east-1uhz7yreuq.auth.us-east-1.amazoncognito.com"` | Cognito OAuth domain (format: `{region}{pool_suffix}.auth.{region}.amazoncognito.com`) |
+| `COGNITO_USER_POOL_ID` | string | `"us-east-1_uhz7yREuQ"` | Cognito User Pool ID (required unless using defaults) |
+| `COGNITO_APP_CLIENT_ID` | string | `"2vn45ed6rbe1c9cg58b2vgpt5u"` | Cognito App Client ID (required unless using defaults) |
+| `COGNITO_REGION` | string | `"us-east-1"` | AWS region where Cognito User Pool is located |
+
+**Notes:**
+- These values are injected into `frontend/.env.production` at build time (visible in compiled Next.js output)
+- If not provided, defaults to placeholder values (for local dev; not recommended for production)
+- In CI/CD, configure as GitHub Secrets and the deployment workflow will pass them automatically
 
 ---
 

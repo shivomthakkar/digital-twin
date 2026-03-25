@@ -1,6 +1,5 @@
 "use client";
 
-// import { Geist, Geist_Mono } from "next/font/google";
 import { Amplify } from 'aws-amplify';
 import { amplifyConfig } from '../amplifyConfig';
 import { signInWithRedirect } from '@aws-amplify/auth';
@@ -9,7 +8,6 @@ import LockOutlineIcon from '@mui/icons-material/LockOutline';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import { usePathname, useRouter } from 'next/navigation';
 
 import "./globals.css";

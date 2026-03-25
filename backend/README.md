@@ -408,6 +408,41 @@ scripts/deploy-service.sh twin-api prod
 
 The script prints the API Gateway URL and Lambda function name on success.
 
+---
+
+### Deploying the Frontend with Cognito Configuration
+
+The frontend is deployed separately from the backend services. To ensure the frontend has the correct Cognito configuration, pass environment variables to `deploy-frontend.sh`:
+
+```bash
+# Basic deploy (no Cognito, uses defaults from .env.local.example)
+scripts/deploy-frontend.sh dev
+
+# With Cognito config (recommended for production)
+COGNITO_DOMAIN=<OAUTH_DOMAIN> \
+COGNITO_USER_POOL_ID=<USER_POOL_ID> \
+COGNITO_APP_CLIENT_ID=<APP_CLIENT_ID> \
+COGNITO_REGION=<REGION> \
+scripts/deploy-frontend.sh prod
+```
+
+**Example with actual values:**
+
+```bash
+COGNITO_DOMAIN=us-east-1uhz7yreuq.auth.us-east-1.amazoncognito.com \
+COGNITO_USER_POOL_ID=us-east-1_uhz7yREuQ \
+COGNITO_APP_CLIENT_ID=2vn45ed6rbe1c9cg58b2vgpt5u \
+COGNITO_REGION=us-east-1 \
+scripts/deploy-frontend.sh prod
+```
+
+These env vars are injected into `frontend/.env.production` at build time, making the Cognito config dynamic across environments.
+
+**Via GitHub Actions (CI/CD):**
+
+Configure these as [GitHub Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (`COGNITO_DOMAIN`, `COGNITO_USER_POOL_ID`, `COGNITO_APP_CLIENT_ID`, `COGNITO_REGION`), and the deployment workflow will automatically pass them to the deploy script.
+
+
 #### Key Outputs
 
 After deploy, retrieve outputs manually if needed:
